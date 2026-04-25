@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "http://127.0.0.1:8000/api",
+  baseURL: "https://vehicle-service-backend-pflq.onrender.com",
   timeout: 5000,
 });
 
@@ -113,5 +113,5 @@ export const getServices = (status = null) =>
 
 export const updateServiceStatus = (id, data) => {
   console.log("PATCH ID:", id, "DATA:", data); // 🔥 ADD THIS
-  return API.patch(`/service-records/${id}`, data);
+  return API.patch(`/service-records/${Number(id)}`, data);
 };
