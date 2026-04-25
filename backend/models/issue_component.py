@@ -1,6 +1,6 @@
 # backend/models/issue_component.py
 
-from sqlalchemy import Column, Integer, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, Integer, ForeignKey, UniqueConstraint,String
 from sqlalchemy.orm import relationship
 from database import Base
 
@@ -9,10 +9,11 @@ class IssueComponent(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
-    issue_id = Column(Integer, ForeignKey("issues.id"))
-    component_id = Column(Integer, ForeignKey("components.id"))
+    issue_id = Column(Integer, ForeignKey("issues.id"), nullable=False, index=True)
+    component_id = Column(Integer, ForeignKey("components.id"), nullable=False, index=True)
 
-    quantity = Column(Integer, default=1)
+    quantity = Column(Integer, nullable=False, default=1)
+    delivery_status = Column(String, default="pending")
 
     # Relationships
     issue = relationship("Issue", back_populates="components")

@@ -6,6 +6,7 @@ from database import get_db
 from models.vehicle import Vehicle
 from schemas.vehicle import VehicleCreate, VehicleResponse
 from utils.normalize import normalize_vehicle_number
+from models.issue import Issue
 
 router = APIRouter(tags=["Vehicles"])
 
@@ -56,6 +57,7 @@ def create_vehicle(data: VehicleCreate, db: Session = Depends(get_db)):
 def get_vehicles(db: Session = Depends(get_db)):
     return db.query(Vehicle).filter(Vehicle.is_active == True).all()
 
+
 @router.put("/vehicles/{vehicle_id}", response_model=VehicleResponse)
 def update_vehicle(vehicle_id: int, data: VehicleCreate, db: Session = Depends(get_db)):
 
@@ -69,7 +71,7 @@ def update_vehicle(vehicle_id: int, data: VehicleCreate, db: Session = Depends(g
 
     normalized_number = normalize_vehicle_number(data.vehicle_number)
 
-    # Check duplicate
+    # 🔍 Check duplicate
     existing_vehicle = db.query(Vehicle).filter(
         Vehicle.vehicle_number == normalized_number,
         Vehicle.id != vehicle_id,   # exclude current vehicle
@@ -82,9 +84,9 @@ def update_vehicle(vehicle_id: int, data: VehicleCreate, db: Session = Depends(g
             detail="Vehicle already exists"
         )
 
-    vehicle.vehicle_number = normalized_number   
+    # ✅ Update fields
+    vehicle.vehicle_number = normalized_number
     vehicle.owner_name = data.owner_name
-    vehicle.issue_description = data.issue_description
 
     db.commit()
     db.refresh(vehicle)
@@ -94,13 +96,29 @@ def update_vehicle(vehicle_id: int, data: VehicleCreate, db: Session = Depends(g
     
 @router.delete("/vehicles/{vehicle_id}")
 def delete_vehicle(vehicle_id: int, db: Session = Depends(get_db)):
-    vehicle = db.query(Vehicle).filter(Vehicle.id == vehicle_id).first()
+
+    vehicle = db.query(Vehicle).filter(
+        Vehicle.id == vehicle_id,
+        Vehicle.is_active == True
+    ).first()
 
     if not vehicle:
         raise HTTPException(status_code=404, detail="Vehicle not found")
 
-    vehicle.is_active = False   
+    # ❗ Check ongoing issues
+    issues = db.query(Issue).filter(
+        Issue.vehicle_id == vehicle_id,
+        Issue.is_active == True
+    ).all()
 
+    if issues:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot delete vehicle with ongoing issues"
+        )
+
+    # ✅ Soft delete
+    vehicle.is_active = False
     db.commit()
 
-    return {"message": "Vehicle deactivated"}
+    return {"message": "Vehicle deleted successfully"}

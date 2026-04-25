@@ -1,7 +1,7 @@
 # backend/routes/issue.py
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from database import get_db
 
 from models.issue import Issue
@@ -12,6 +12,9 @@ from models.vehicle import Vehicle
 from schemas.issue import IssueCreate, IssueResponse
 from schemas.issue_component import IssueComponentCreate, UpdateQuantity
 from utils.normalize import normalize_text
+from typing import Optional
+
+
 
 router = APIRouter(tags=["Issues"])
 
@@ -29,31 +32,34 @@ def create_issue(data: IssueCreate, db: Session = Depends(get_db)):
     if not vehicle:
         raise HTTPException(status_code=404, detail="Vehicle not found")
 
-    normalized_input = normalize_text(data.description)
+    issue = Issue(
+        vehicle_id=data.vehicle_id,
+        description=data.description
+    )
 
-    issues = db.query(Issue).filter(
-        Issue.vehicle_id == data.vehicle_id,
-        Issue.is_active == True
-    ).all()
-
-    for issue in issues:
-        if normalize_text(issue.description) == normalized_input:
-            raise HTTPException(
-                status_code=400,
-                detail="Issue already exists for this vehicle"
-            )
-
-    issue = Issue(**data.model_dump())
     db.add(issue)
     db.commit()
     db.refresh(issue)
 
     return issue
 
+
 @router.get("/issues", response_model=list[IssueResponse])
-def get_issues(db: Session = Depends(get_db)):
-    issues = db.query(Issue).filter(Issue.is_active == True).all()
-    return issues
+def get_issues(
+    vehicle_id: Optional[int] = None,
+    db: Session = Depends(get_db)
+):
+
+    query = db.query(Issue).options(
+        joinedload(Issue.vehicle),
+        joinedload(Issue.components).joinedload(IssueComponent.component)
+    ).filter(Issue.is_active == True)
+
+    # ✅ ADD FILTER
+    if vehicle_id:
+        query = query.filter(Issue.vehicle_id == vehicle_id)
+
+    return query.all()
 
 
 # Add Component to Issue
@@ -78,12 +84,17 @@ def add_component(data: IssueComponentCreate, db: Session = Depends(get_db)):
     if not component:
         raise HTTPException(status_code=404, detail="Component not found")
     
-    existing = db.query(IssueComponent).filter(IssueComponent.issue_id == data.issue_id, IssueComponent.component_id == data.component_id).first()
+    existing = db.query(IssueComponent).join(Issue).join(Component).filter(
+    Issue.vehicle_id == issue.vehicle_id,
+    Issue.is_active == True,
+    Issue.id != data.issue_id,   # ✅ ADD THIS  
+    IssueComponent.component_id == data.component_id,
+    Component.type == component.type).first()
 
     if existing:
         raise HTTPException(
             status_code=400,
-            detail="Component already added to this issue. Update quantity instead."
+            detail="Issue already exists for this vehicle with same component and type. Update instead."
         )
 
     issue_component = IssueComponent(**data.model_dump())
@@ -95,7 +106,7 @@ def add_component(data: IssueComponentCreate, db: Session = Depends(get_db)):
 
 # Calculate Bill for Vehicle
 @router.get("/vehicles/{vehicle_id}/bill")
-def calculate_bill(vehicle_id: int, db: Session = Depends(get_db)):
+def get_bill(vehicle_id: int, type: Optional[str] = None, db: Session = Depends(get_db)):
 
     # Check vehicle exists
     vehicle = db.query(Vehicle).filter(
@@ -107,37 +118,47 @@ def calculate_bill(vehicle_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Vehicle not found")
 
     # Get only active issues
-    issues = db.query(Issue).filter(
+    issues = db.query(Issue).options(
+    joinedload(Issue.components).joinedload(IssueComponent.component)
+    ).filter(
         Issue.vehicle_id == vehicle_id,
         Issue.is_active == True
     ).all()
 
-    if not issues:
-        raise HTTPException(status_code=404, detail="No issues found")
 
     total = 0
-    breakdown = []
+    items = []
 
     for issue in issues:
         for ic in issue.components:
-            comp = ic.component
-
-            if not comp or not comp.is_active:
+            if not ic.component:
                 continue
 
-            cost = comp.price * ic.quantity
-            total += cost
+            # 🔥 FILTER LOGIC
+            if type and ic.component.type != type:
+                continue
 
-            breakdown.append({
-                "component": comp.name,
-                "type": comp.type,       
+            amount = ic.component.price * ic.quantity
+            total += amount
+
+            items.append({
+                "component": ic.component.name,
+                "type": ic.component.type,
                 "quantity": ic.quantity,
-                "cost": cost
+                "price": ic.component.price,
+                "amount": amount
             })
+    if not items:
+        raise HTTPException(
+            status_code=400,
+            detail=f"No {type or ''} components found for this vehicle"
+        )
 
     return {
-        "total": total,
-        "breakdown": breakdown
+        "vehicle_id": vehicle_id,
+        "type": type or "all",
+        "items": items,
+        "total": total
     }
 
 

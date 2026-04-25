@@ -9,10 +9,21 @@ function Orders() {
     <div>
       <h3>Orders</h3>
 
-      {/* 🔥 SUB TABS */}
+      {/* SUB TABS */}
       <div className="nav-links">
-        <button onClick={() => setTab("items")}>Items</button>
-        <button onClick={() => setTab("repairs")}>Repairs</button>
+        <button
+          className={tab === "items" ? "active" : ""}
+          onClick={() => setTab("items")}
+        >
+          Items
+        </button>
+
+        <button
+          className={tab === "repairs" ? "active" : ""}
+          onClick={() => setTab("repairs")}
+        >
+          Repairs
+        </button>
       </div>
 
       {tab === "items" && <ItemOrders />}

@@ -23,6 +23,8 @@ function Issues() {
   const [selectedComponent, setSelectedComponent] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [issueComponentId, setIssueComponentId] = useState(null);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
 
   // Fetch Issues
   const fetchIssues = async () => {
@@ -54,6 +56,8 @@ function Issues() {
 
   // Select Issue
   const handleSelectIssue = (i) => {
+    setError("");     // ✅ ADD HERE
+    setMessage("");
     setSelectedIssue(i);
     setEditDescription(i.description);
 
@@ -71,22 +75,56 @@ function Issues() {
     }
   };
 
+  
+
   // FULL UPDATE
   const handleFullUpdate = async () => {
+
+    if (!editDescription.trim()) {
+      alert("Description cannot be empty");
+      return;
+    }
+
+    if (!selectedComponent) {
+      setError("Select component");
+      return;
+    }
+
+    if (quantity <= 0) {
+      alert("Quantity must be greater than 0");
+      return;
+    }
+    
     try {
-      // Update issue
+      // ✅ Update issue
       await updateIssue(selectedIssue.id, {
         vehicle_id: selectedIssue.vehicle_id,
         description: editDescription,
       });
 
-      // Delete old component
+      // 🔥 ADD YOUR NEW LOGIC HERE
       if (issueComponentId) {
-        await deleteIssueComponent(issueComponentId);
-      }
+        const existingComponentId =selectedIssue?.components?.length > 0 ? selectedIssue.components[0].component_id : null;
 
-      // Add new component
-      if (selectedComponent) {
+        if (Number(selectedComponent) === existingComponentId) {
+
+          await updateIssueComponent(issueComponentId, {
+            quantity: Number(quantity),
+          });
+
+        } else {
+
+          await deleteIssueComponent(issueComponentId);
+
+          await addComponentToIssue({
+            issue_id: selectedIssue.id,
+            component_id: Number(selectedComponent),
+            quantity: Number(quantity),
+          });
+        }
+
+      } else {
+
         await addComponentToIssue({
           issue_id: selectedIssue.id,
           component_id: Number(selectedComponent),
@@ -94,25 +132,28 @@ function Issues() {
         });
       }
 
-      alert("Issue updated successfully");
-
-      setSelectedIssue(null);
+      setMessage("Issue updated successfully");
+      setError("");
+      setSelectedIssue(null);        // ✅ CLOSE EDIT PANEL
+      setSelectedComponent("");      // ✅ RESET
+      setQuantity(1);
       fetchIssues();
+
     } catch (err) {
-      alert(err.response?.data?.detail || "Error");
+      alert(err.message || "Error");
     }
   };
 
-  // Delete Issue
   const handleDelete = async () => {
     try {
       await deleteIssue(selectedIssue.id);
 
-      alert("Issue deleted");
+      setMessage("Issue deleted successfully");
+      setError("");
       setSelectedIssue(null);
       fetchIssues();
     } catch (err) {
-      alert(err.response?.data?.detail || "Error");
+        alert(err.message || "Error");
     }
   };
 
@@ -139,7 +180,7 @@ function Issues() {
                 selectedIssue?.id === i.id ? "#dff0ff" : "",
             }}
           >
-            <strong>Vehicle ID:</strong> {i.vehicle_id} <br />
+            <strong>Vehicle:</strong> {i.vehicle?.vehicle_number || i.vehicle_id} <br />
             <strong>Issue:</strong> {i.description}
           </div>
         ))
@@ -150,7 +191,7 @@ function Issues() {
         <div className="list-item">
           <h3>Issue Details</h3>
 
-          <p><strong>Vehicle ID:</strong> {selectedIssue.vehicle_id}</p>
+          <strong>Vehicle:</strong> {selectedIssue.vehicle?.vehicle_number || selectedIssue.vehicle_id}
           <p><strong>Description:</strong> {selectedIssue.description}</p>
 
           {/* Components */}
@@ -159,8 +200,8 @@ function Issues() {
           {selectedIssue.components && selectedIssue.components.length > 0 ? (
             selectedIssue.components.map((ic) => (
               <div key={ic.id}>
-                <p><strong>Name:</strong> {ic.component?.name}</p>
-                <p><strong>Type:</strong> {ic.component?.type}</p>
+                <p><strong>Name:</strong> {ic.component?.name || "N/A"}</p>
+                <p><strong>Type:</strong> {ic.component?.type || "N/A"}</p>
                 <p><strong>Quantity:</strong> {ic.quantity}</p>
                 <hr />
               </div>
@@ -174,7 +215,11 @@ function Issues() {
 
           <input
             value={editDescription}
-            onChange={(e) => setEditDescription(e.target.value)}
+            onChange={(e) => {
+              setEditDescription(e.target.value);
+              setMessage("");   // ✅ clear old message
+              setError("");     // ✅ clear old error
+            }}
           />
 
           <select
@@ -200,8 +245,9 @@ function Issues() {
 
           <input
             type="number"
+            min="1"
             value={quantity}
-            onChange={(e) => setQuantity(e.target.value)}
+            onChange={(e) => setQuantity(Number(e.target.value))}
           />
 
           <div style={{ marginTop: "10px" }}>
@@ -219,6 +265,8 @@ function Issues() {
               Delete
             </button>
           </div>
+          {message && <p style={{ color: "green" }}>{message}</p>}
+          {error && <p style={{ color: "red" }}>{error}</p>}
         </div>
       )}
     </div>

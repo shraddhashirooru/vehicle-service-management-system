@@ -11,7 +11,6 @@ class VehicleBase(BaseModel):
 
     @field_validator("vehicle_number")
     def validate_vehicle_number(cls, value):
-        # remove spaces first
         cleaned = "".join(value.split())
 
         if not cleaned.isalnum():
@@ -24,8 +23,9 @@ class VehicleCreate(VehicleBase):
     pass
 
 
-class VehicleResponse(VehicleBase):
+class VehicleResponse(BaseModel):
     id: int
-
+    vehicle_number: str
+    owner_name: str
     class Config:
         from_attributes = True

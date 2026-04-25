@@ -20,7 +20,7 @@ function VehicleForm() {
         vehicle_number: vehicleNumber,
         owner_name: ownerName,
       });
-
+      onSuccess();
       alert("Vehicle added");
 
       setVehicleNumber("");

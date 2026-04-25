@@ -15,4 +15,13 @@ class Vehicle(Base):
 
 
     # Relationship
-    issues = relationship("Issue", back_populates="vehicle")
+    issues = relationship(
+        "Issue",
+        back_populates="vehicle",
+        cascade="all, delete-orphan"   # ✅ good practice
+    )
+
+    services = relationship(          # 🔥 ADD THIS
+        "ServiceRecord",
+        back_populates="vehicle"
+    )

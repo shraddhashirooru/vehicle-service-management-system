@@ -6,6 +6,7 @@ import {
   createIssue,
   getComponents,
   addComponentToIssue,
+  deleteIssue, 
 } from "../services/api";
 
 function IssueForm({ onSuccess }) {
@@ -17,6 +18,9 @@ function IssueForm({ onSuccess }) {
   const [components, setComponents] = useState([]);
   const [selectedComponent, setSelectedComponent] = useState("");
   const [quantity, setQuantity] = useState(1);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
   // Load vehicles
   useEffect(() => {
@@ -39,14 +43,8 @@ function IssueForm({ onSuccess }) {
 
   const fetchComponents = async () => {
     try {
-      const res = await getComponents();
-
-      // filter by type (new / repair)
-      const filtered = res.data.filter(
-        (c) => c.type === resolutionType
-      );
-
-      setComponents(filtered);
+      const res = await getComponents(resolutionType); // ✅ optimized
+      setComponents(res.data);
     } catch (err) {
       console.error(err);
     }
@@ -55,44 +53,87 @@ function IssueForm({ onSuccess }) {
   // Submit
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+    setMessage("");
 
-    if (!vehicleId || !description) {
-      alert("Please fill all fields");
+    if (!vehicleId || !description.trim()) {
+      setError("Please fill all fields");
       return;
     }
 
     if (!selectedComponent) {
-      alert("Please select component");
+      setError("Please select component");
+      return;
+    }
+    
+    if (!quantity ||quantity <= 0) {
+      setError("Quantity must be greater than 0");
       return;
     }
 
+    let res;
     try {
-      // Create issue
-      const res = await createIssue({
+      // CHECK DUPLICATE
+      // const existing = await getIssues();
+
+      // const duplicate = existing.data.find((i) =>
+      //   i.vehicle_id === Number(vehicleId) &&
+      //   i.components?.some(
+      //     (c) => c.component_id === Number(selectedComponent) && c.component?.type === resolutionType
+      //   )
+      // );
+
+      // if (duplicate) {
+      //   setError("Issue already exists. Update to change.");
+      //   return;
+      // }
+
+      // ✅ CREATE ISSUE
+      setLoading(true);
+      res = await createIssue({
         vehicle_id: Number(vehicleId),
         description,
       });
 
-      // Attach component
-      if (selectedComponent){
-        await addComponentToIssue({
+      // ✅ ADD COMPONENT
+      await addComponentToIssue({
         issue_id: res.data.id,
         component_id: Number(selectedComponent),
         quantity: Number(quantity),
       });
-    }
 
-      alert("Issue added successfully");
+      setMessage("Issue added successfully");
+      setError("");
 
-      // reset form
+      // reset
       setDescription("");
       setSelectedComponent("");
       setQuantity(1);
+      setVehicleId("");
 
       if (onSuccess) onSuccess();
 
     } catch (err) {
-      alert(err.response?.data?.detail || "Error");
+      const msg = err.message;
+
+      // ✅ DELETE EMPTY ISSUE IF CREATED
+      if (res?.data?.id) {
+        try {
+          await deleteIssue(res.data.id);
+        } catch (e) {
+          console.error("Cleanup failed:", e);
+        }
+      }
+
+      if (msg?.toLowerCase().includes("already exists")) {
+        setError("This component already exists for this vehicle. Update instead.");
+        setMessage("");
+      } else {
+        setError(msg || "Something went wrong");
+        setMessage("");   // ✅ STOP LOADING ALWAYS
+      } 
+    } finally {
+        setLoading(false);
     }
   };
 
@@ -103,7 +144,7 @@ function IssueForm({ onSuccess }) {
       {/* Vehicle Selection */}
       <select
         value={vehicleId}
-        onChange={(e) => setVehicleId(e.target.value)}
+        onChange={(e) => {setVehicleId(e.target.value); setError(""); setMessage(""); }}
       >
         <option value="">Select Vehicle</option>
 
@@ -118,7 +159,7 @@ function IssueForm({ onSuccess }) {
       <input
         placeholder="Issue Description"
         value={description}
-        onChange={(e) => setDescription(e.target.value)}
+        onChange={(e) => {setDescription(e.target.value); setError(""); setMessage("");}}
       />
 
       {/* Resolution Type */}
@@ -135,7 +176,7 @@ function IssueForm({ onSuccess }) {
       <h4>Select Component</h4>
       <select
         value={selectedComponent}
-        onChange={(e) => setSelectedComponent(e.target.value)}
+        onChange={(e) => {setSelectedComponent(e.target.value); setError(""); setMessage("");}}
       >
         <option value="">Select Component</option>
 
@@ -149,12 +190,18 @@ function IssueForm({ onSuccess }) {
       {/* Quantity */}
       <input
         type="number"
+        min="1"
         placeholder="Quantity"
         value={quantity}
-        onChange={(e) => setQuantity(e.target.value)}
+        onChange={(e) => setQuantity(Number(e.target.value))}
       />
 
-      <button type="submit">Add Issue</button>
+      <button type="submit" disabled={loading}>
+        {loading ? "Adding..." : "Add Issue"}
+      </button>
+
+      {error && <p style={{ color: "red" }}>{error}</p>}
+      {message && <p style={{ color: "green" }}>{message}</p>}
     </form>
   );
 }

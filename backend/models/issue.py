@@ -10,10 +10,10 @@ class Issue(Base):
     id = Column(Integer, primary_key=True, index=True)
     description = Column(String, nullable=False)
 
-    vehicle_id = Column(Integer, ForeignKey("vehicles.id"))
-    is_active = Column(Boolean, default=True)   # ✅ ADD THIS
-
+    vehicle_id = Column(Integer, ForeignKey("vehicles.id"), nullable=False, index=True)
+    is_active = Column(Boolean, default=True)   # ADD THIS
+    status = Column(String, default="pending")  
 
     # Relationships
     vehicle = relationship("Vehicle", back_populates="issues")
-    components = relationship("IssueComponent", back_populates="issue")
+    components = relationship("IssueComponent", back_populates="issue", cascade="all, delete-orphan")

@@ -1,27 +1,162 @@
 # backend/routes/service.py
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
 from models.service_record import ServiceRecord
-from schemas.service_record import ServiceRecordResponse
-from datetime import datetime
+from models.vehicle import Vehicle
+from models.issue import Issue
+
+from schemas.service_record import ServiceCreate, ServiceRecordResponse
 from sqlalchemy import func
+from sqlalchemy.orm import joinedload
+from models.issue_component import IssueComponent
+from schemas.service_record import ServiceUpdate   # 🔥 ADD IMPORT
+
+
 
 router = APIRouter(tags=["Services"])
 
+# ➕ Create Order
+@router.post("/service-records", response_model=ServiceRecordResponse)
+def create_service(data: ServiceCreate, db: Session = Depends(get_db)):
 
-# Save Service Record
-@router.post("/services/{vehicle_id}")
-def create_service(vehicle_id: int, total_amount: float, db: Session = Depends(get_db)):
-    record = ServiceRecord(
-        vehicle_id=vehicle_id,
-        total_amount=total_amount,
-        created_at=datetime.utcnow()
+    # ✅ Check vehicle exists
+    vehicle = db.query(Vehicle).filter(
+        Vehicle.id == data.vehicle_id,
+        Vehicle.is_active == True
+    ).first()
+
+    if not vehicle:
+        raise HTTPException(status_code=404, detail="Vehicle not found")
+
+    if data.type not in ["new", "repair"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid service type"
+        )
+
+    issues = db.query(Issue).options(
+        joinedload(Issue.components).joinedload(IssueComponent.component)
+    ).filter(
+        Issue.vehicle_id == data.vehicle_id,
+        Issue.is_active == True
+    ).all()
+
+    if not issues:
+        raise HTTPException(
+            status_code=400,
+            detail="No active issues found for this vehicle"
+        )
+
+
+    valid_items = [
+        ic
+        for issue in issues
+        for ic in issue.components
+        if ic.component and ic.component.type == data.type
+    ] 
+
+    if not valid_items:
+        raise HTTPException(
+            status_code=400,
+            detail=f"No {data.type} components available for this vehicle"
+        )
+
+    # ❌ Prevent duplicate ongoing order
+    existing = db.query(ServiceRecord).filter(
+        ServiceRecord.vehicle_id == data.vehicle_id,
+        ServiceRecord.status == "pending",
+        ServiceRecord.type == data.type   # ✅ ADD THIS
+    ).first()
+
+
+    if existing:
+        raise HTTPException(
+            status_code=400,
+            detail=f"{data.type.capitalize()} order already pending for this vehicle"
+        )
+
+    calculated_total = sum(
+        ic.component.price * ic.quantity
+        for ic in valid_items
     )
-    db.add(record)
+
+    if round(calculated_total, 2) != round(data.total_amount, 2):
+        raise HTTPException(
+            status_code=400,
+            detail="Total amount mismatch"
+        )
+
+    # ✅ Create order
+    service = ServiceRecord(
+        vehicle_id=data.vehicle_id,
+        total_amount=calculated_total,
+        status="pending",
+        type=data.type   # 🔥 ADD THIS
+    )
+
+    db.add(service)
+
+    for issue in issues:
+        has_matching_component = any(
+            ic.component and ic.component.type == data.type
+            for ic in issue.components
+        )
+        
+        if has_matching_component:
+            issue.is_active = False
+    
     db.commit()
-    return {"message": "Service recorded"}
+    db.refresh(service)
+
+    service = db.query(ServiceRecord).options(
+        joinedload(ServiceRecord.vehicle)
+    ).filter(ServiceRecord.id == service.id).first()
+
+    return service
+
+# 📄 Get All Orders
+@router.get("/service-records", response_model=list[ServiceRecordResponse])
+def get_services(status: str = None, db: Session = Depends(get_db)):
+
+    query = db.query(ServiceRecord).options(
+        joinedload(ServiceRecord.vehicle)
+    )
+
+    # ✅ FILTER IF STATUS PROVIDED
+    if status:
+        query = query.filter(ServiceRecord.status == status)
+
+    services = query.order_by(ServiceRecord.created_at.desc()).all()
+
+    return services
+
+# 🔧 Update Service Status
+@router.patch("/service-records/{service_id}", response_model=ServiceRecordResponse)
+def update_service(service_id: int, data: ServiceUpdate, db: Session = Depends(get_db)):
+
+    service = db.query(ServiceRecord).filter(ServiceRecord.id == service_id).first()
+
+    if not service:
+        raise HTTPException(status_code=404, detail="Service not found")
+
+    # ✅ Validate status
+    if data.status not in ["pending", "completed"]:
+        raise HTTPException(status_code=400, detail="Invalid status")
+
+    # ✅ Update status
+    service.status = data.status
+
+    db.commit()
+    db.refresh(service)
+
+    # 🔥 Return with vehicle info
+    service = db.query(ServiceRecord).options(
+        joinedload(ServiceRecord.vehicle)
+    ).filter(ServiceRecord.id == service.id).first()
+
+    return service
 
 
 # Daily Revenue

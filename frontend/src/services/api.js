@@ -7,7 +7,12 @@ const API = axios.create({
 
 // REQUEST LOGGER
 API.interceptors.request.use((config) => {
-  console.log("API Request:", config.method.toUpperCase(), config.url);
+  console.log(
+  "API Request:",
+  config.method.toUpperCase(),
+  config.url,
+  config.params ?? config.data ?? null
+ );
   return config;
 });
 
@@ -15,8 +20,20 @@ API.interceptors.request.use((config) => {
 API.interceptors.response.use(
   (response) => response,
   (error) => {
-    console.error("API Error:", error.response || error.message);
-    return Promise.reject(error);
+
+    if (error.code === "ECONNABORTED") {
+      return Promise.reject({ message: "Request timeout. Try again." });
+    }
+
+    const message =
+      error.response?.data?.detail ||
+      error.response?.data?.message ||
+      error.message ||
+      "Something went wrong";
+
+    console.error("API Error:", message);
+
+    return Promise.reject({ message, original: error, });
   }
 );
 
@@ -25,6 +42,12 @@ export const getVehicles = () => API.get("/vehicles");
 
 export const createVehicle = (data) =>
   API.post("/vehicles", data);
+
+export const updateVehicle = (id, data) =>
+  API.put(`/vehicles/${id}`, data);
+
+export const deleteVehicle = (id) =>
+  API.delete(`/vehicles/${id}`);
 
 //  ISSUES
 export const getIssues = () => API.get("/issues");
@@ -63,8 +86,10 @@ export const deleteIssueComponent = (id) =>
 
 
 //  BILLING
-export const getBill = (vehicleId) =>
-  API.get(`/vehicles/${vehicleId}/bill`);
+export const getBill = (vehicleId, type) =>
+  API.get(`/vehicles/${vehicleId}/bill`, {
+    params: type ? { type } : {},
+  });
 
 // REVENUE
 export const getDailyRevenue = () =>
@@ -75,3 +100,18 @@ export const getMonthlyRevenue = () =>
 
 export const getYearlyRevenue = () =>
   API.get("/revenue/yearly");
+
+// SERVICES
+
+export const createService = (data) =>
+  API.post("/service-records", data);
+
+export const getServices = (status = null) =>
+  API.get("/service-records", {
+    params: status ? { status } : {},
+  });
+
+export const updateServiceStatus = (id, data) => {
+  console.log("PATCH ID:", id, "DATA:", data); // 🔥 ADD THIS
+  return API.patch(`/service-records/${id}`, data);
+};

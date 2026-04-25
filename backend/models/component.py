@@ -10,4 +10,4 @@ class Component(Base):
     name = Column(String, nullable=False)
     type = Column(String, nullable=False)  # "new" or "repair"
     price = Column(Float, nullable=False)
-    is_active = Column(Boolean, default=True)   # ✅ ADD THIS
+    is_active = Column(Boolean, default=True)   
