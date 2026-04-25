@@ -1,8 +1,7 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: process.env.REACT_APP_API_URL,
-  timeout: 5000,
+  baseURL: process.env.REACT_APP_API_URL || "https://vehicle-service-backend-pflq.onrender.com/api",
 });
 
 // REQUEST LOGGER
