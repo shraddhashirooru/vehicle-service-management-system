@@ -5,32 +5,49 @@ function ComponentForm() {
   const [name, setName] = useState("");
   const [type, setType] = useState("new");
   const [price, setPrice] = useState("");
-  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const isError =
+    message &&
+    ["error", "required", "invalid", "exist"].some((word) =>
+      message.toLowerCase().includes(word)
+    );
 
   const handleSubmit = async (e) => {
   e.preventDefault();
 
-  if (!name || !price) {
-    setError("All fields are required");
+  if (!name.trim() || !price.trim()) {
+    setMessage("All fields are required");
+    return;
+  }
+  if (Number(price) <= 0) {
+    setMessage("Enter valid price");
     return;
   }
 
   try {
+    setLoading(true);
+    setMessage("");
     await createComponent({
-      name,
+      name: name.trim(),
       type,
       price: Number(price),
     });
 
-    alert("Component added");
+    setMessage("Component added successfully");
+    setTimeout(() => {
+      setMessage("");
+    }, 10000);
 
     setName("");
     setType("new");
     setPrice("");
-    setError(""); 
 
   } catch (err) {
-    setError(err.response?.data?.detail || "Error");
+    setMessage(err.response?.data?.detail || err.message || "Error adding component");
+  } finally {
+    setLoading(false);
   }
 };
 
@@ -39,27 +56,54 @@ function ComponentForm() {
       <h3>Add Component</h3>
 
       <input
+        autoFocus
+        disabled={loading}
         placeholder="Component Name"
         value={name}
-        onChange={(e) => setName(e.target.value)}
+        onChange={(e) => {
+          setName(e.target.value); 
+          setMessage("");
+        }}
       />
 
-      <select value={type} onChange={(e) => setType(e.target.value)}>
+      <select 
+        value={type} 
+        disabled={loading} 
+        onChange={(e) => {
+          setType(e.target.value); 
+          setMessage("");
+        }}>
         <option value="new">New</option>
         <option value="repair">Repair</option>
       </select>
 
       <input
         type="number"
+        min="1"
         placeholder="Price"
         value={price}
-        onChange={(e) => setPrice(e.target.value)}
+        disabled={loading}
+        onChange={(e) => {
+          setPrice(e.target.value); 
+          setMessage("");
+        }}
       />
 
-      <button type="submit">Add</button>
+      <button type="submit" disabled={loading || !name.trim() || !price.trim() || Number(price) <= 0}>  
+        {loading ? "Adding..." : "Add Component"}
+      </button>
 
       {/* ADD THIS HERE */}
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      {message && (
+        <p
+          style={{
+            color: isError ? "red" : "green",
+            marginTop: "10px",
+          }}
+        >
+          {message}
+        </p>
+      )}
     </form>
   );
 }

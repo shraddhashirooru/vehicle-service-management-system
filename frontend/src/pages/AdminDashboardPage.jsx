@@ -7,6 +7,7 @@ function AdminDashboardPage() {
   const [error, setError] = useState("");
   const [selectedId, setSelectedId] = useState(null);
   const [messages, setMessages] = useState({});
+  const [processingId, setProcessingId] = useState(null);
 
   useEffect(() => {
     fetchServices();
@@ -15,11 +16,15 @@ function AdminDashboardPage() {
   const fetchServices = async () => {
     try {
       setLoading(true);
+      setError("");
       const res = await getServices("pending");
       setServices(res.data);
-      setMessages({});
     } catch (err) {
-      setError(err.message);
+      setError(
+        err.response?.data?.detail ||
+        err.message ||
+        "Unable to load orders"
+      );
     } finally {
       setLoading(false);
     }
@@ -32,6 +37,7 @@ function AdminDashboardPage() {
   const handleComplete = async (id) => {
     try {
       setMessages((prev) => ({ ...prev, [id]: "" }));
+      setProcessingId(id);
 
       await updateServiceStatus(id, { status: "completed" });
 
@@ -40,21 +46,34 @@ function AdminDashboardPage() {
         [id]: "Order updated successfully",
       }));
 
-      setTimeout(() => {
-        fetchServices();
-      }, 800);
+      setTimeout(async () => {
+        await fetchServices();
+
+        setMessages((prev) => ({
+          ...prev,
+          [id]: "",
+        }));
+        setSelectedId(null);
+        setProcessingId(null);
+      }, 2000);
 
     } catch (err) {
       setMessages((prev) => ({
         ...prev,
-        [id]: err.message,
+        [id]: err.response?.data?.detail || err.message || "Failed to update order",
       }));
+      setProcessingId(null);
     }
   };
 
-  // 🔥 split items & repairs
-  const items = services.filter((s) => s.type === "new");
-  const repairs = services.filter((s) => s.type === "repair");
+  // split items & repairs
+  const items = services.filter(
+    (s) => s.type?.toLowerCase() === "new"
+  );
+
+  const repairs = services.filter(
+    (s) => s.type?.toLowerCase() === "repair"
+  );
 
   const renderSection = (title, data, buttonText) => (
     <>
@@ -64,7 +83,13 @@ function AdminDashboardPage() {
         <p>No {title.toLowerCase()}</p>
       ) : (
         data.map((s) => {
-          const isOpen = selectedId === s.id;
+          const isOpen = selectedId === s.id;          
+          
+          const isError =
+            messages[s.id] &&
+            ["error", "invalid", "fail", "not"].some((word) =>
+              messages[s.id].toLowerCase().includes(word)
+            );
 
           return (
             <div
@@ -77,7 +102,7 @@ function AdminDashboardPage() {
               }}
             >
               {/* CLICK AREA */}
-              <div onClick={() => handleToggle(s.id)}>
+              <div onClick={() => processingId === null && handleToggle(s.id)}>
                 <strong>Vehicle:</strong>{" "}
                 {s.vehicle?.vehicle_number || s.vehicle_id} <br />
 
@@ -91,9 +116,9 @@ function AdminDashboardPage() {
               {isOpen && (
                 <div style={{ marginTop: "10px" }}>
                   <strong>Type:</strong>{" "}
-                  {s.type === "new" ? "Item" : "Repair"} <br />
+                  {s.type?.toLowerCase() === "new" ? "Item" : "Repair"} <br />
 
-                  <strong>Total:</strong> ₹{s.total_amount} <br />
+                  <strong>Total:</strong> ₹{Number(s.total_amount).toFixed(2)} <br />
 
                   <strong>Order Date:</strong>{" "}
                   {new Date(s.created_at + "Z").toLocaleString("en-IN", {
@@ -103,20 +128,18 @@ function AdminDashboardPage() {
                   {/* ACTION BUTTON */}
                   <button
                     style={{ marginTop: "10px" }}
-                    onClick={() => handleComplete(s.id)}
+                    onClick={() => handleComplete(s.id)} disabled={processingId !== null}
                   >
-                    {buttonText}
+                    {processingId === s.id
+                      ? "Updating..."
+                      : buttonText}
                   </button>
 
                   {/* MESSAGE */}
                   {messages[s.id] && (
                     <p
                       style={{
-                        color:
-                          messages[s.id]?.toLowerCase().includes("not") ||
-                          messages[s.id]?.toLowerCase().includes("invalid")
-                            ? "red"
-                            : "green",
+                        color: isError ? "red" : "green",
                         marginTop: "5px",
                       }}
                     >
@@ -134,7 +157,7 @@ function AdminDashboardPage() {
 
   return (
     <div>
-      <h3>Pending Orders</h3>
+      <h3 style={{ marginBottom: "10px" }}>Pending Orders</h3>
 
       {error && (
         <p style={{ color: "red", marginTop: "10px" }}>
@@ -143,7 +166,7 @@ function AdminDashboardPage() {
       )}
 
       {loading ? (
-        <p>Loading...</p>
+        <p style={{ marginTop: "10px" }}>Loading...</p>
       ) : services.length === 0 ? (
         <p>No pending orders</p>
       ) : (

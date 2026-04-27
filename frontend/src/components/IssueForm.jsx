@@ -1,6 +1,6 @@
 // src/components/IssueForm.jsx
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   getVehicles,
   createIssue,
@@ -21,6 +21,20 @@ function IssueForm({ onSuccess }) {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const timerRef = useRef(null);
+
+  const clearTimer = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return () => clearTimer();
+  }, []);
+  
 
   // Load vehicles
   useEffect(() => {
@@ -66,7 +80,7 @@ function IssueForm({ onSuccess }) {
       return;
     }
     
-    if (!quantity ||quantity <= 0) {
+    if (!quantity || quantity <= 0) {
       setError("Quantity must be greater than 0");
       return;
     }
@@ -92,7 +106,7 @@ function IssueForm({ onSuccess }) {
       setLoading(true);
       res = await createIssue({
         vehicle_id: Number(vehicleId),
-        description,
+        description: description.trim(),
       });
 
       // ✅ ADD COMPONENT
@@ -103,6 +117,11 @@ function IssueForm({ onSuccess }) {
       });
 
       setMessage("Issue added successfully");
+      clearTimer();
+      timerRef.current = setTimeout(() => {
+        setMessage("");
+      }, 10000);
+
       setError("");
 
       // reset
@@ -110,6 +129,7 @@ function IssueForm({ onSuccess }) {
       setSelectedComponent("");
       setQuantity(1);
       setVehicleId("");
+      setResolutionType("new");
 
       if (onSuccess) onSuccess();
 
@@ -143,8 +163,13 @@ function IssueForm({ onSuccess }) {
 
       {/* Vehicle Selection */}
       <select
+        autoFocus
+        disabled={loading}
         value={vehicleId}
-        onChange={(e) => {setVehicleId(e.target.value); setError(""); setMessage(""); }}
+        onChange={(e) => {setVehicleId(e.target.value); 
+          clearTimer();
+          setError(""); 
+          setMessage(""); }}
       >
         <option value="">Select Vehicle</option>
 
@@ -157,16 +182,27 @@ function IssueForm({ onSuccess }) {
 
       {/* Description */}
       <input
+        type="text"
+        disabled={loading}
         placeholder="Issue Description"
         value={description}
-        onChange={(e) => {setDescription(e.target.value); setError(""); setMessage("");}}
+        onChange={(e) => {setDescription(e.target.value); 
+          clearTimer();
+          setError(""); 
+          setMessage("");}}
       />
 
       {/* Resolution Type */}
       <h4>Resolution Type</h4>
       <select
+        disabled={loading}
         value={resolutionType}
-        onChange={(e) => setResolutionType(e.target.value)}
+        onChange={(e) => {setResolutionType(e.target.value); 
+          clearTimer();
+          setSelectedComponent(""); 
+          setError(""); 
+          setMessage("");}
+        }
       >
         <option value="new">New Component</option>
         <option value="repair">Repair</option>
@@ -175,8 +211,13 @@ function IssueForm({ onSuccess }) {
       {/* Component Selection */}
       <h4>Select Component</h4>
       <select
+        disabled={loading}
         value={selectedComponent}
-        onChange={(e) => {setSelectedComponent(e.target.value); setError(""); setMessage("");}}
+        onChange={(e) => {setSelectedComponent(e.target.value); 
+          clearTimer();
+          setError(""); 
+          setMessage("");}
+        }
       >
         <option value="">Select Component</option>
 
@@ -189,14 +230,24 @@ function IssueForm({ onSuccess }) {
 
       {/* Quantity */}
       <input
+        disabled={loading}
         type="number"
         min="1"
         placeholder="Quantity"
         value={quantity}
-        onChange={(e) => setQuantity(Number(e.target.value))}
+        onChange={(e) => {setQuantity(e.target.value === "" ? "" : Number(e.target.value)); 
+          clearTimer();
+
+          setError(""); 
+          setMessage("");}
+        }
       />
 
-      <button type="submit" disabled={loading}>
+      <button type="submit" disabled={loading || !vehicleId ||
+        !description.trim() ||
+        !selectedComponent ||
+        quantity <= 0
+        }>
         {loading ? "Adding..." : "Add Issue"}
       </button>
 

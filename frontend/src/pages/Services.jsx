@@ -1,6 +1,6 @@
 // src/pages/Services.jsx
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   getVehicles,
   getBill,
@@ -19,8 +19,28 @@ function Services() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [billLoading, setBillLoading] = useState(false);
+  const [orderLoading, setOrderLoading] = useState(false);
 
-  // 🔥 Get vehicles having issues
+  const timerRef = useRef(null);
+
+  const clearTimer = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
+  const switchMode = (newMode) => {
+    setMode(newMode);
+    setSelectedOrder(null);
+    setSelectedVehicle("");
+    setBill(null);
+    setError("");
+  };
+
+  // Get vehicles having issues
   useEffect(() => {
     fetchVehicles();
   }, []);
@@ -30,6 +50,10 @@ function Services() {
       fetchOrders();
     }
   }, [mode]);
+
+  useEffect(() => {
+    return () => clearTimer();
+  }, []);
 
   const fetchVehicles = async () => {
     try {
@@ -45,36 +69,53 @@ function Services() {
       console.error(err);
     }
   };
-  // 💰 Get bill
-  const handleGetBill = async () => {
-    if (!selectedVehicle) return alert("Select vehicle");
 
+  // Get bill
+  const handleGetBill = async () => {
+    if (!selectedVehicle) {
+      setError("Select vehicle");
+      return
+    }
     try {
+      setBillLoading(true);
+      setError("");
+      setMessage("");
+      setBill(null);
       const type = mode === "purchase" ? "new" : "repair";
       const res = await getBill(selectedVehicle, type);
+
       setBill(res.data);
     } catch (err) {
-      alert(err.message);
+      setError(err.message || "Unable to get bill");
+      clearTimer();
+      timerRef.current = setTimeout(() => {
+        setError("");
+      }, 2500);
+    } finally {
+      setBillLoading(false);
     }
   };
 
-  // 🧾 Place order
+  // Place order
   const handlePlaceOrder = async () => {
 
-  // ✅ VALIDATION
+  // VALIDATION
     if (!selectedVehicle) {
-      alert("Select vehicle");
+      setError("Select vehicle");
       return;
     }
 
     if (!bill || bill.items.length === 0) {
-      alert("No items available to place order");
+      setError("No items available to place order");
       return;
     }
     
     try {
       setLoading(true);
-      // ✅ CREATE ORDER
+      setOrderLoading(true);
+      setError("");
+ 
+      // CREATE ORDER
       await createService({
         vehicle_id: Number(selectedVehicle),
         total_amount: bill.total,
@@ -82,28 +123,37 @@ function Services() {
       });
 
 
-      // ✅ RESET
+      //RESET
       setSelectedVehicle("");
       setBill(null);
 
-      // 🔥 IMPORTANT: refresh orders + switch tab
-      fetchVehicles();
-      setSelectedOrder(null);   // ✅ ADD   
-      setMode("view");
+      // refresh orders + switch tab
+      await fetchVehicles();
+      switchMode("view");
       setMessage("Order placed successfully");
+      clearTimer();
+      timerRef.current = setTimeout(() => {
+        setMessage("");
+      }, 2000);
 
     } catch (err) {
-      alert(err.message || "Error");
+      setError(err.message || "Error placing order");
+      clearTimer();
+      timerRef.current = setTimeout(() => {
+        setError("");
+      }, 2500);
     } finally {
-      setLoading(false);  // 🔥 ALWAYS STOP LOADING
+      setLoading(false);
+      setOrderLoading(false);
     }
   };
-  // 📦 Fetch orders
+
+  // Fetch orders
   const fetchOrders = async () => {
     try {
       const res = await getServices();
       setOrders(res.data);
-      setSelectedOrder(null); // 🔥 add this
+      setSelectedOrder(null); 
 
     } catch (err) {
       console.error(err);
@@ -119,18 +169,36 @@ function Services() {
         </p>
       )}
 
-      {/* 🔘 Buttons */}
-      <button onClick={() => { setMode("purchase"); setSelectedOrder(null); setMessage(""); setSelectedVehicle(""); setBill(null); }}>
+      {error && (
+        <p style={{ color: "red", marginBottom: "10px" }}>
+          {error}
+        </p>
+      )}
+
+      {/* Buttons */}
+      <button
+        style={{ marginRight: "10px" }}
+        disabled={billLoading || orderLoading || loading}
+        onClick={() => switchMode("purchase")}
+      >
         Purchase Parts
       </button>
 
-      <button onClick={() => { setMode("repair"); setSelectedOrder(null); setMessage(""); setSelectedVehicle(""); setBill(null); }}>
+      <button
+        style={{ marginRight: "10px" }}
+        disabled={billLoading || orderLoading || loading}
+        onClick={() => switchMode("repair")}
+      >
         Repair Services
       </button>
 
-      <button onClick={() => { setMode("view"); setSelectedOrder(null); setMessage(""); setSelectedVehicle(""); setBill(null); }}>
+      <button
+        disabled={billLoading || orderLoading || loading}
+        onClick={() => switchMode("view")}
+      >
         View Orders
       </button>
+
       {/* ================= */}
       {/* PLACE ORDER */}
       {/* ================= */}
@@ -140,8 +208,10 @@ function Services() {
 
           
           <select
+            autoFocus 
+            disabled={billLoading || orderLoading || loading}
             value={selectedVehicle}
-            onChange={(e) => {setSelectedVehicle(e.target.value); setMessage(""); setBill(null);}}
+            onChange={(e) => {  clearTimer(); setSelectedVehicle(e.target.value); setMessage(""); setError(""); setBill(null);}}
           >
             <option value="">Select Vehicle</option>
 
@@ -157,8 +227,8 @@ function Services() {
             </p>
           )}
 
-          <button onClick={handleGetBill} disabled={loading || !selectedVehicle || vehicles.length === 0}>
-            Get Bill
+          <button onClick={handleGetBill} disabled={billLoading || orderLoading || loading || !selectedVehicle || vehicles.length === 0}>
+            {billLoading ? "Getting..." : "Get Bill"}
           </button>
 
           {/* BILL */}
@@ -174,7 +244,7 @@ function Services() {
                 </div>
               ))}
               
-              <button onClick={handlePlaceOrder} disabled={loading || !bill || bill.items.length === 0}>
+              <button onClick={handlePlaceOrder} disabled={billLoading || orderLoading || loading || !bill || bill.items.length === 0}>
                 {loading ? "Placing..." : "Place Order"}
               </button>
 
@@ -201,8 +271,12 @@ function Services() {
               <div
                 key={o.id}
                 className="list-item"
-                onClick={() => setSelectedOrder(o)}   // ✅ clickable
-                style={{ cursor: "pointer" }}
+                onClick={() => !loading && !orderLoading && setSelectedOrder(o)}   
+                style={{
+                  cursor: loading || orderLoading ? "not-allowed" : "pointer",
+                  backgroundColor:
+                    selectedOrder?.id === o.id ? "#dff0ff" : "",
+                }}
               >
                 <strong>Vehicle:</strong>{" "}
                 {o.vehicle?.vehicle_number || o.vehicle_id} <br />

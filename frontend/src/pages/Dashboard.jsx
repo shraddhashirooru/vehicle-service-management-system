@@ -84,7 +84,9 @@ function Dashboard() {
                   <strong>Total:</strong> ₹{s.total_amount} <br />
 
                   <strong>Order Date:</strong>{" "}
-                  {new Date(s.created_at).toLocaleString()}
+                  {new Date(s.created_at + "Z").toLocaleString("en-IN", {
+                    timeZone: "Asia/Kolkata"
+                  })}
                 </div>
               )}
             </div>
