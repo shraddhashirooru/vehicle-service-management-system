@@ -1,6 +1,6 @@
 // src/pages/Issues.jsx
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   getIssues,
   updateIssue,
@@ -25,6 +25,17 @@ function Issues() {
   const [issueComponentId, setIssueComponentId] = useState(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [action, setAction] = useState(null);
+
+  const timerRef = useRef(null);
+
+  const clearTimer = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  };
 
   // Fetch Issues
   const fetchIssues = async () => {
@@ -44,6 +55,10 @@ function Issues() {
   useEffect(() => {
     fetchComponents();
   }, [resolutionType]);
+
+  useEffect(() => {
+    return () => clearTimer();
+  }, []);
 
   const fetchComponents = async () => {
     try {
@@ -81,7 +96,7 @@ function Issues() {
   const handleFullUpdate = async () => {
 
     if (!editDescription.trim()) {
-      alert("Description cannot be empty");
+      setError("Description cannot be empty");
       return;
     }
 
@@ -91,15 +106,19 @@ function Issues() {
     }
 
     if (quantity <= 0) {
-      alert("Quantity must be greater than 0");
+      setError("Quantity must be greater than 0");
       return;
     }
     
     try {
+      setLoading(true);
+      setAction("update");
+      setError("");
+      setMessage("");
       // ✅ Update issue
       await updateIssue(selectedIssue.id, {
         vehicle_id: selectedIssue.vehicle_id,
-        description: editDescription,
+        description: editDescription.trim(),
       });
 
       // 🔥 ADD YOUR NEW LOGIC HERE
@@ -133,27 +152,47 @@ function Issues() {
       }
 
       setMessage("Issue updated successfully");
+      clearTimer();
+
+      timerRef.current = setTimeout(() => {
+        setMessage("");
+      }, 10000);
+
       setError("");
       setSelectedIssue(null);        // ✅ CLOSE EDIT PANEL
       setSelectedComponent("");      // ✅ RESET
       setQuantity(1);
-      fetchIssues();
+      await fetchIssues();
+      setResolutionType("new");
 
     } catch (err) {
-      alert(err.message || "Error");
+      setError(err.message || "Error updating issue");
+    } finally {
+      setLoading(false);
+      setAction(null);
     }
   };
 
   const handleDelete = async () => {
     try {
-      await deleteIssue(selectedIssue.id);
-
-      setMessage("Issue deleted successfully");
+      setLoading(true);
+      setAction("delete");
       setError("");
+      setMessage("");
+      await deleteIssue(selectedIssue.id);
+      setMessage("Issue deleted successfully");
+      clearTimer();
+      timerRef.current = setTimeout(() => {
+        setMessage("");
+      }, 2000);
       setSelectedIssue(null);
-      fetchIssues();
+      await fetchIssues();
+      setResolutionType("new");
     } catch (err) {
-        alert(err.message || "Error");
+        setError(err.message || "Error deleting issue");
+    } finally {
+      setLoading(false);
+      setAction(null);
     }
   };
 
@@ -173,7 +212,7 @@ function Issues() {
           <div
             key={i.id}
             className="list-item"
-            onClick={() => handleSelectIssue(i)}
+            onClick={() => !loading && handleSelectIssue(i)}
             style={{
               cursor: "pointer",
               backgroundColor:
@@ -214,8 +253,11 @@ function Issues() {
           <h3>Edit Issue</h3>
 
           <input
+            autoFocus 
+            disabled={loading} 
             value={editDescription}
             onChange={(e) => {
+              clearTimer();
               setEditDescription(e.target.value);
               setMessage("");   // ✅ clear old message
               setError("");     // ✅ clear old error
@@ -223,16 +265,18 @@ function Issues() {
           />
 
           <select
+            disabled={loading} 
             value={resolutionType}
-            onChange={(e) => setResolutionType(e.target.value)}
+            onChange={(e) => {clearTimer(); setResolutionType(e.target.value); setMessage(""); setError("");}}
           >
             <option value="new">New</option>
             <option value="repair">Repair</option>
           </select>
 
           <select
+            disabled={loading} 
             value={selectedComponent}
-            onChange={(e) => setSelectedComponent(e.target.value)}
+            onChange={(e) => {clearTimer(); setSelectedComponent(e.target.value); setMessage(""); setError("");}}
           >
             <option value="">Select Component</option>
 
@@ -244,25 +288,20 @@ function Issues() {
           </select>
 
           <input
+            disabled={loading} 
             type="number"
             min="1"
             value={quantity}
-            onChange={(e) => setQuantity(Number(e.target.value))}
+            onChange={(e) => {clearTimer(); setQuantity(e.target.value === "" ? "" : Number(e.target.value)); setMessage(""); setError("");}}
           />
 
           <div style={{ marginTop: "10px" }}>
-            <button onClick={handleFullUpdate}>
-              Update
+            <button   onClick={handleFullUpdate} disabled={loading}>
+            {loading && action === "update" ? "Updating..." : "Update"}
             </button>
 
-            <button
-              onClick={handleDelete}
-              style={{
-                backgroundColor: "red",
-                marginLeft: "10px",
-              }}
-            >
-              Delete
+            <button onClick={handleDelete} disabled={loading} style={{ backgroundColor: "red", marginLeft: "10px",}}>
+            {loading && action === "delete" ? "Deleting..." : "Delete"}
             </button>
           </div>
           {message && <p style={{ color: "green" }}>{message}</p>}
