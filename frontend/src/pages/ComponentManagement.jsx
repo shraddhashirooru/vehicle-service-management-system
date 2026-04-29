@@ -9,48 +9,88 @@ import {
 function ComponentManagement() {
   const [selected, setSelected] = useState(null);
   const [newPrice, setNewPrice] = useState("");
+  const [message, setMessage] = useState("");
+  const [isError, setIsError] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [updating, setUpdating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // UPDATE PRICE
+  const showMessage = (text, error = false) => {
+    setMessage(text);
+    setIsError(error);
+
+    setTimeout(() => {
+      setMessage("");
+    }, 3000);
+  };
+
   const handleUpdate = async () => {
     if (!newPrice) {
-      alert("Enter new price");
+      showMessage("Enter new price", true);
       return;
     }
+
+    if (Number(newPrice) <= 0) {
+      showMessage("Enter valid price", true);
+      return;
+    }
+
+    setUpdating(true);
+
 
     try {
       await updateComponentPrice(selected.id, {
         price: Number(newPrice),
       });
 
-      alert("Price updated successfully");
+      showMessage("Price updated successfully");
 
       setSelected(null);
       setNewPrice("");
-
-      window.location.reload(); // 🔥 simple refresh
+      setRefreshKey((prev) => prev + 1); // simple refresh
 
     } catch (err) {
-      alert(err.response?.data?.detail || "Error updating price");
+      showMessage(
+        err.response?.data?.detail || "Error updating price",
+        true
+      );
+    } finally {
+      setUpdating(false);
     }
   };
 
   // DELETE COMPONENT
   const handleDelete = async () => {
-    if (!window.confirm("Are you sure you want to delete this component?"))
+    if (!window.confirm("Delete this component?"))
       return;
+    
+    setDeleting(true);
 
     try {
       await deleteComponent(selected.id);
 
-      alert("Component deleted");
+      showMessage("Component deleted");
 
       setSelected(null);
-
-      window.location.reload();
+      setRefreshKey((prev) => prev + 1);
 
     } catch (err) {
-      alert(err.response?.data?.detail || "Error deleting component");
+      showMessage(
+        err.response?.data?.detail || "Error deleting component",
+        true
+      );
+      setIsError(true);
+    } finally {
+      setDeleting(false);
     }
+  };
+
+  const handleSelect = (item) => {
+    setSelected(item);
+    setMessage("");
+    setIsError(false);
+    setNewPrice("");
   };
 
   return (
@@ -62,16 +102,26 @@ function ComponentManagement() {
 
       {/* Component Lists */}
       <ComponentList
+        key={`new-${refreshKey}`}
         type="new"
-        onSelect={setSelected}
+        onSelect={handleSelect}         
         selected={selected}
       />
 
       <ComponentList
+        key={`repair-${refreshKey}`}
         type="repair"
-        onSelect={setSelected}
+        onSelect={handleSelect}
         selected={selected}
       />
+
+      {/* Message */}
+      {message && (
+        <p style={{ color: isError ? "red" : "green", fontWeight: "bold", marginTop: "10px" }}>
+          {message}
+        </p>
+      )}
+
 
       {/* SELECTED COMPONENT ACTION */}
       {selected && (
@@ -86,24 +136,29 @@ function ComponentManagement() {
             {/* Update Price */}
             <input
               type="number"
+              min="1"
+              step="1"
               placeholder="Enter new price"
               value={newPrice}
               onChange={(e) => setNewPrice(e.target.value)}
+              disabled={updating || deleting}
             />
 
             <button
               style={{ marginRight: "10px" }}
               onClick={handleUpdate}
+              disabled={updating || deleting || !selected}
             >
-              Update Price
+              {updating ? "Updating..." : "Update Price"}
             </button>
 
             {/* Delete */}
             <button
-              style={{ backgroundColor: "red", color: "white" }}
+              style={{ backgroundColor: "red", color: "white", marginLeft: "10px" }}
               onClick={handleDelete}
+              disabled={updating || deleting}
             >
-              Delete
+              {deleting ? "Deleting..." : "Delete"}
             </button>
           </div>
         </div>
