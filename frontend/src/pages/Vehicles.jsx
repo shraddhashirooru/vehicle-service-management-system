@@ -68,7 +68,7 @@ function Vehicles() {
 
       await updateVehicle(selected.id, {
         vehicle_number: editNumber.trim(),
-        owner_name: editOwner.trim(),
+        owner_name: editOwner.trim().replace(/\s+/g, " "),
       });
 
       setMessage("Vehicle updated successfully");
@@ -84,16 +84,23 @@ function Vehicles() {
       setSelected(null);
       fetchVehicles();
     } catch (err) {
-      setMessage(
-        err.original?.response?.data?.detail ||
-        err.message ||
-        "Error updating vehicle"
-      );
-    } finally {
+        const detail =
+          err.original?.response?.data?.detail ||
+          err.response?.data?.detail;
+
+        if (Array.isArray(detail)) {
+          setMessage(detail[0]?.msg || "Invalid input");
+        } else {
+          setMessage(
+            detail ||
+            err.message ||
+            "Error updating vehicle"
+          );
+        }
+      } finally {
       setLoading(false);
       setAction(null);
-
-    }
+     }
   };
 
   // ❌ Delete vehicle
@@ -129,11 +136,14 @@ function Vehicles() {
     }
   };
 
+  const safeMessage = String(message);
+
   const isError =
     message &&
-    ["error", "invalid", "exist"].some((word) =>
-      message.toLowerCase().includes(word)
+    ["error", "invalid", "exist", "value", "please"].some((word) =>
+      safeMessage.toLowerCase().includes(word)
     );
+
   const isUnchanged =
     selected &&
     editNumber.trim() === selected.vehicle_number &&

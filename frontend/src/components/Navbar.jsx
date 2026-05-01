@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 
 function Navbar() {
   const location = useLocation();
@@ -10,19 +10,19 @@ function Navbar() {
 
   return (
     <div>
-      <div className="navbar">Vehicle Service System</div>
+      <div className="navbar">Vehicle Service Management System</div>
 
       {/* USER NAVIGATION */}
       {(location.pathname.startsWith("/dashboard") ||
         location.pathname.startsWith("/vehicles") ||
         location.pathname.startsWith("/issues") ||
-        location.pathname.startsWith("/services")) && (
-        <div className="nav-links">
-          <Link to="/dashboard">Dashboard</Link>
-          <Link to="/vehicles">Vehicles</Link>
-          <Link to="/issues">Issues</Link>
-          <Link to="/services">Services</Link>
-        </div>
+        location.pathname.startsWith("/orders")) && (
+        <nav className="nav-links">
+          <NavLink to="/dashboard">Dashboard</NavLink>
+          <NavLink to="/vehicles">Vehicles</NavLink>
+          <NavLink to="/issues">Issues</NavLink>
+          <NavLink to="/orders">Orders</NavLink>
+        </nav>
       )}
     </div>
   );

@@ -29,8 +29,15 @@ body {
   margin: 0 15px;
   font-size: 18px;
   text-decoration: none;
+  padding: 8px 12px;
   color: #2c3e50;
   font-weight: bold;
+}
+
+.nav-links a.active {
+  background: #007bff;
+  color: white;
+  border-radius: 5px;
 }
 
 .nav-links a:hover {

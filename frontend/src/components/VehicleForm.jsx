@@ -22,10 +22,12 @@ function VehicleForm({onSuccess}) {
     };
   }, []);
 
+  const safeMessage = String(message);
+
   const isError =
     message &&
-    ["error", "invalid", "exist"].some((word) =>
-      message.toLowerCase().includes(word)
+    ["error", "invalid", "exist", "value", "please", "fill"].some((word) =>
+      safeMessage.toLowerCase().includes(word)
     );
 
   const handleSubmit = async (e) => {
@@ -42,7 +44,7 @@ function VehicleForm({onSuccess}) {
 
       await createVehicle({
         vehicle_number: vehicleNumber.trim(),
-        owner_name: ownerName.trim(),
+        owner_name: ownerName.trim().replace(/\s+/g, " "),
       });
 
       setMessage("Vehicle added successfully");
@@ -60,12 +62,20 @@ function VehicleForm({onSuccess}) {
       setVehicleNumber("");
       setOwnerName("");
     } catch (err) {
-      setMessage(
-        err.original?.response?.data?.detail ||
-        err.message ||
-        "Error adding vehicle"
-      );
-    } finally {
+        const detail =
+          err.original?.response?.data?.detail ||
+          err.response?.data?.detail;
+
+        if (Array.isArray(detail)) {
+          setMessage(detail[0]?.msg || "Invalid input");
+        } else {
+          setMessage(
+            detail ||
+            err.message ||
+            "Error adding vehicle"
+          );
+        }
+      } finally {
       setLoading(false);
     }
   };

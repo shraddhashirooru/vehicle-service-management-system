@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import AdminDashboardPage from "./AdminDashboardPage";
 import ComponentManagement from "./ComponentManagement";
@@ -7,16 +8,42 @@ import Revenue from "./Revenue";
 
 function AdminDashboard() {
   const [tab, setTab] = useState("dashboard");
+  const navigate = useNavigate();
+  
+  const handleLogout = () => {
+      localStorage.removeItem("adminAuth");
+      navigate("/admin-login");
+    };
+
   return (
     <div className="container">
-      <h2>Admin Panel</h2>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "15px"
+        }}
+      >
+        <h2>Vehicle Service Admin Panel</h2>
+
+        <button
+          onClick={handleLogout}
+          style={{
+            backgroundColor: "red",
+            color: "white"
+          }}
+        >
+          Logout
+        </button>
+      </div>
 
       {/* MAIN NAV */}
       <div className="nav-links">
-        <button onClick={() => setTab("dashboard")}>Dashboard</button>
-        <button onClick={() => setTab("components")}>Components</button>
-        <button onClick={() => setTab("orders")}> Orders</button>
-        <button onClick={() => setTab("revenue")}>Revenue</button>
+        <button   className={tab === "dashboard" ? "active" : ""} onClick={() => setTab("dashboard")}>Dashboard</button>
+        <button   className={tab === "components" ? "active" : ""} onClick={() => setTab("components")}>Components</button>
+        <button   className={tab === "orders" ? "active" : ""} onClick={() => setTab("orders")}>Orders</button>
+        <button   className={tab === "revenue" ? "active" : ""} onClick={() => setTab("revenue")}>Revenue</button>
       </div>
 
       {/* CONTENT */}

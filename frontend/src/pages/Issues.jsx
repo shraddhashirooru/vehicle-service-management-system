@@ -198,7 +198,7 @@ function Issues() {
 
   return (
     <div className="container">
-      <h2>Issues</h2>
+      <h2>Vehicle Issues Management</h2>
 
       {/* Add Issue */}
       <IssueForm onSuccess={fetchIssues} />

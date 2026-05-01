@@ -13,11 +13,11 @@ class IssueComponent(Base):
     component_id = Column(Integer, ForeignKey("components.id"), nullable=False, index=True)
 
     quantity = Column(Integer, nullable=False, default=1)
-    delivery_status = Column(String, default="pending")
+    delivery_status = Column(String, default="pending", nullable=False, index=True)
 
     # Relationships
     issue = relationship("Issue", back_populates="components")
-    component = relationship("Component")
+    component = relationship("Component", lazy="joined")
 
     __table_args__ = (
         UniqueConstraint('issue_id', 'component_id', name='unique_issue_component'),

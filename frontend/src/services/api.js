@@ -105,9 +105,15 @@ export const getYearlyRevenue = () =>
 export const createService = (data) =>
   API.post("/service-records", data);
 
-export const getServices = (status = null) =>
+export const getServices = (
+  status = null,
+  type = null
+) =>
   API.get("/service-records", {
-    params: status ? { status } : {},
+    params: {
+      ...(status && { status }),
+      ...(type && { type }),
+    },
   });
 
 export const updateServiceStatus = (id, data) => {

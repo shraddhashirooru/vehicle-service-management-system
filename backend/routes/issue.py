@@ -142,6 +142,7 @@ def get_bill(vehicle_id: int, type: Optional[str] = None, db: Session = Depends(
             total += amount
 
             items.append({
+                "issue": issue.description,
                 "component": ic.component.name,
                 "type": ic.component.type,
                 "quantity": ic.quantity,

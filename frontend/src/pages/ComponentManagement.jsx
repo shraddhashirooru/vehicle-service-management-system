@@ -80,7 +80,6 @@ function ComponentManagement() {
         err.response?.data?.detail || "Error deleting component",
         true
       );
-      setIsError(true);
     } finally {
       setDeleting(false);
     }

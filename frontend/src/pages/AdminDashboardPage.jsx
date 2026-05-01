@@ -11,6 +11,10 @@ function AdminDashboardPage() {
 
   useEffect(() => {
     fetchServices();
+    
+    const timer = setInterval(fetchServices, 30000);
+
+    return () => clearInterval(timer);
   }, []);
 
   const fetchServices = async () => {
@@ -34,16 +38,21 @@ function AdminDashboardPage() {
     setSelectedId((prev) => (prev === id ? null : id));
   };
 
-  const handleComplete = async (id) => {
+  const handleComplete = async (service) => {
     try {
-      setMessages((prev) => ({ ...prev, [id]: "" }));
-      setProcessingId(id);
+      setMessages((prev) => ({ ...prev, [service.id]: "" }));
+      setProcessingId(service.id);
 
-      await updateServiceStatus(id, { status: "completed" });
+      const status =
+        service.type?.toLowerCase() === "new"
+          ? "delivered"
+          : "completed";
+
+      await updateServiceStatus(service.id, { status });
 
       setMessages((prev) => ({
         ...prev,
-        [id]: "Order updated successfully",
+        [service.id]: "Order updated successfully",
       }));
 
       setTimeout(async () => {
@@ -51,7 +60,7 @@ function AdminDashboardPage() {
 
         setMessages((prev) => ({
           ...prev,
-          [id]: "",
+          [service.id]: "",
         }));
         setSelectedId(null);
         setProcessingId(null);
@@ -60,7 +69,7 @@ function AdminDashboardPage() {
     } catch (err) {
       setMessages((prev) => ({
         ...prev,
-        [id]: err.response?.data?.detail || err.message || "Failed to update order",
+        [service.id]: err.response?.data?.detail || err.message || "Failed to update order",
       }));
       setProcessingId(null);
     }
@@ -88,7 +97,7 @@ function AdminDashboardPage() {
           const isError =
             messages[s.id] &&
             ["error", "invalid", "fail", "not"].some((word) =>
-              messages[s.id].toLowerCase().includes(word)
+              String(messages[s.id]).toLowerCase().includes(word)
             );
 
           return (
@@ -115,8 +124,8 @@ function AdminDashboardPage() {
               {/* DETAILS */}
               {isOpen && (
                 <div style={{ marginTop: "10px" }}>
-                  <strong>Type:</strong>{" "}
-                  {s.type?.toLowerCase() === "new" ? "Item" : "Repair"} <br />
+                  <strong>Order:</strong> #
+                  {s.order_number || String(s.id).padStart(5, "0")} <br />
 
                   <strong>Total:</strong> ₹{Number(s.total_amount).toFixed(2)} <br />
 
@@ -125,10 +134,71 @@ function AdminDashboardPage() {
                     timeZone: "Asia/Kolkata"
                   })} <br />
 
+
+                  {/* ITEMS TABLE */}
+                  {s.items?.length === 0 ? (
+                    <p style={{ marginTop: "10px", color: "gray" }}>
+                      No details found
+                    </p>
+                  ) : (
+                    <table
+                      style={{
+                        width: "100%",
+                        marginTop: "10px",
+                        borderCollapse: "collapse"
+                      }}
+                    >
+                      <thead>
+                        <tr>
+                          <th style={{ border: "1px solid #ccc", padding: "8px" }}>
+                            No
+                          </th>
+
+                          <th style={{ border: "1px solid #ccc", padding: "8px" }}>
+                            Issue
+                          </th>
+
+                          <th style={{ border: "1px solid #ccc", padding: "8px" }}>
+                            {s.type === "new" ? "Item" : "Repair"}
+                          </th>
+
+                          <th style={{ border: "1px solid #ccc", padding: "8px" }}>
+                            Amount
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {s.items.map((item, index) => (
+                          <tr key={index}>
+                            <td style={{ border: "1px solid #ccc", padding: "8px" }}>
+                              {index + 1}
+                            </td>
+
+                            <td style={{ border: "1px solid #ccc", padding: "8px" }}>
+                              {item.issue}
+                            </td>
+
+                            <td style={{ border: "1px solid #ccc", padding: "8px" }}>
+                              {item.item_name}
+                            </td>
+
+                            <td style={{ border: "1px solid #ccc", padding: "8px" }}>
+                              ₹{Number(item.amount).toFixed(2)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+
                   {/* ACTION BUTTON */}
                   <button
                     style={{ marginTop: "10px" }}
-                    onClick={() => handleComplete(s.id)} disabled={processingId !== null}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleComplete(s);
+                    }} 
+                    disabled={processingId !== null}
                   >
                     {processingId === s.id
                       ? "Updating..."
@@ -166,7 +236,7 @@ function AdminDashboardPage() {
       )}
 
       {loading ? (
-        <p style={{ marginTop: "10px" }}>Loading...</p>
+        <p style={{ marginTop: "10px" }}>Loading pending orders...</p>
       ) : services.length === 0 ? (
         <p>No pending orders</p>
       ) : (

@@ -3,8 +3,8 @@
 from fastapi import FastAPI
 from database import engine, Base
 
-# Import all models (IMPORTANT)
-from models import component, vehicle, issue, issue_component, service_record
+# Import all models 
+from models import component, vehicle, issue, issue_component, service_record, service_item
 
 # Import routes
 from routes import component as component_routes
@@ -13,7 +13,6 @@ from routes import issue as issue_routes
 from routes import service as service_routes
 from fastapi.middleware.cors import CORSMiddleware
 
-# Create tables in DB
 
 # Initialize app
 app = FastAPI(title="Vehicle Service Management System")

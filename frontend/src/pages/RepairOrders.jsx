@@ -16,7 +16,7 @@ function RepairOrders() {
     try {
       setLoading(true);
       setError("");
-      const res = await getServices(); 
+      const res = await getServices(null, "repair"); 
       setOrders(res.data);
     } catch (err) {
       setError("Unable to load repair orders");
@@ -26,7 +26,6 @@ function RepairOrders() {
   };
 
   // filter ONLY repair type
-  const repairs = orders.filter((o) => o.type?.toLowerCase() === "repair");
 
   const handleComplete = async (id) => {
     try {
@@ -56,9 +55,17 @@ function RepairOrders() {
     }
   };
 
+  const formatDate = (date) => {
+    return new Date(date).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
   return (
     <div className="container">
-      <h3 style={{ marginBottom: "10px" }}>Repair Orders</h3>
+      <h4 style={{ marginBottom: "10px" }}>Repair Orders</h4>
       {error && (
         <p style={{ color: "red", marginTop: "10px" }}>
           {error}
@@ -67,57 +74,252 @@ function RepairOrders() {
 
       {loading ? (
         <p style={{ marginTop: "10px" }}>Loading...</p>
-      ) : repairs.length === 0 ? (
-        <p>No repairs</p>
+      ) : orders.length === 0 ? (
+        <p>No repair orders found</p>
       ) : (
-        repairs.map((r) => {
+        orders.map((r) => {
           const isError =
             messages[r.id] &&
-            ["error", "invalid", "fail", "not"].some((word) =>
-              messages[r.id].toLowerCase().includes(word)
+            ["error", "invalid", "fail", "not", "unable"].some((word) =>
+              String(messages[r.id]).toLowerCase().includes(word)
             );
 
           return (
-          <div key={r.id} className="list-item">
-            <strong>Vehicle:</strong>{" "}
-            {r.vehicle?.vehicle_number || r.vehicle_id} <br />
-            <strong>Type:</strong> {r.type} <br />
+            <div key={r.id} className="list-item" style={{ marginBottom: "20px" }}>
+              <h4>
+                  Order #
+                  {r.order_number ||
+                    String(r.id).padStart(5, "0")}
+              </h4>
 
-            <strong>Total:</strong> ₹{Number(r.total_amount).toFixed(2)} <br />
+              <p>
+                <strong>Vehicle:</strong>{" "}
+                {r.vehicle?.vehicle_number || r.vehicle_id}
+              </p>
 
-            <strong>Status:</strong>{" "}
-            {r.status === "pending" ? (
-              <span style={{ color: "orange" }}>Pending</span>
-            ) : (
-              <span style={{ color: "green" }}>Completed</span>
-            )}
+              <p>
+                <strong>Order Date:</strong>{" "}
+                {formatDate(r.created_at)}
+              </p>
 
-            <br />
-
-            {/* BUTTON ONLY IF PENDING */}
-            {r.status === "pending" && (
-            <>
-              <button
-                style={{ marginTop: "10px" }}
-                onClick={() => handleComplete(r.id)}
-                disabled={processingId === r.id}
-              >
-                {processingId === r.id
-                  ? "Updating..."
-                  : "Mark as Completed"}
-              </button>
-
-              {messages[r.id] && (
-                <p
-                  style={{
-                    color: isError ? "red" : "green",
-                    marginTop: "5px",
-                  }}
-                >
-                  {messages[r.id]}
+              {r.completed_at && (
+                <p>
+                  <strong>
+                    Completed Date:
+                  </strong>{" "}
+                  {formatDate(
+                    r.completed_at
+                  )}
                 </p>
               )}
-            </>
+
+              <p>
+                <strong>Status:</strong>{" "}
+                {r.status === "pending" ? (
+                  <span
+                    style={{
+                      color: "orange",
+                    }}
+                  >
+                    Pending
+                  </span>
+                ) : (
+                  <span
+                    style={{
+                      color: "green",
+                    }}
+                  >
+                    Completed
+                  </span>
+                )}
+              </p>
+
+              {/* REPAIR TABLE */}
+              {r.items?.length === 0 ? (
+                <p
+                  style={{
+                    marginTop: "10px",
+                    color: "gray",
+                  }}
+                >
+                  No repairs found
+                </p>
+              ) : (
+                <table
+                  style={{
+                    width: "100%",
+                    borderCollapse:
+                      "collapse",
+                    marginTop: "10px",
+                  }}
+                >
+                  <thead>
+                    <tr>
+                      <th
+                        style={{
+                          border:
+                            "1px solid #ccc",
+                          padding: "8px",
+                        }}
+                      >
+                        No
+                      </th>
+
+                      <th
+                        style={{
+                          border:
+                            "1px solid #ccc",
+                          padding: "8px",
+                        }}
+                      >
+                        Issue
+                      </th>
+
+                      <th
+                        style={{
+                          border:
+                            "1px solid #ccc",
+                          padding: "8px",
+                        }}
+                      >
+                        Repair
+                      </th>
+
+                      <th
+                        style={{
+                          border:
+                            "1px solid #ccc",
+                          padding: "8px",
+                        }}
+                      >
+                        Amount
+                      </th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {r.items?.map(
+                      (
+                        item,
+                        index
+                      ) => (
+                        <tr
+                          key={index}
+                        >
+                          <td
+                            style={{
+                              border:
+                                "1px solid #ccc",
+                              padding:
+                                "8px",
+                            }}
+                          >
+                            {index + 1}
+                          </td>
+
+                          <td
+                            style={{
+                              border:
+                                "1px solid #ccc",
+                              padding:
+                                "8px",
+                            }}
+                          >
+                            {
+                              item.issue
+                            }
+                          </td>
+
+                          <td
+                            style={{
+                              border:
+                                "1px solid #ccc",
+                              padding:
+                                "8px",
+                            }}
+                          >
+                            {
+                              item.item_name
+                            }
+                          </td>
+
+                          <td
+                            style={{
+                              border:
+                                "1px solid #ccc",
+                              padding:
+                                "8px",
+                            }}
+                          >
+                            ₹
+                            {Number(
+                              item.amount
+                            ).toFixed(
+                              2
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    )}
+                  </tbody>
+                </table>
+              )}
+
+              <p
+                style={{
+                  marginTop: "10px",
+                  fontWeight: "bold",
+                }}
+              >
+                Total Amount: ₹
+                {Number(
+                  r.total_amount
+                ).toFixed(2)}
+              </p>
+              {/* BUTTON */}
+              {r.status ===
+                "pending" && (
+                <>
+                  <button
+                    style={{
+                      marginTop:
+                        "10px",
+                    }}
+                    onClick={() =>
+                      handleComplete(
+                        r.id
+                      )
+                    }
+                    disabled={
+                      processingId ===
+                      r.id
+                    }
+                  >
+                    {processingId ===
+                    r.id
+                      ? "Updating..."
+                      : "Mark as Completed"}
+                  </button>
+
+                  {messages[r.id] && (
+                    <p
+                      style={{
+                        color:
+                          isError
+                            ? "red"
+                            : "green",
+                        marginTop:
+                          "8px",
+                      }}
+                    >
+                      {
+                        messages[
+                          r.id
+                        ]
+                      }
+                    </p>           
+                  )}
+              </>
             )}
           </div>
         );

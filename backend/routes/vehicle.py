@@ -41,7 +41,7 @@ def create_vehicle(data: VehicleCreate, db: Session = Depends(get_db)):
     # CREATE NEW VEHICLE 
     vehicle = Vehicle(
         vehicle_number=normalized_number,
-        owner_name=data.owner_name,
+        owner_name=data.owner_name.strip(),
         issue_description=data.issue_description
     )
 
@@ -71,7 +71,7 @@ def update_vehicle(vehicle_id: int, data: VehicleCreate, db: Session = Depends(g
 
     normalized_number = normalize_vehicle_number(data.vehicle_number)
 
-    # 🔍 Check duplicate
+    # Check duplicate
     existing_vehicle = db.query(Vehicle).filter(
         Vehicle.vehicle_number == normalized_number,
         Vehicle.id != vehicle_id,   # exclude current vehicle
@@ -84,9 +84,9 @@ def update_vehicle(vehicle_id: int, data: VehicleCreate, db: Session = Depends(g
             detail="Vehicle already exists"
         )
 
-    # ✅ Update fields
+    # Update fields
     vehicle.vehicle_number = normalized_number
-    vehicle.owner_name = data.owner_name
+    vehicle.owner_name = data.owner_name.strip()
 
     db.commit()
     db.refresh(vehicle)
@@ -105,7 +105,7 @@ def delete_vehicle(vehicle_id: int, db: Session = Depends(get_db)):
     if not vehicle:
         raise HTTPException(status_code=404, detail="Vehicle not found")
 
-    # ❗ Check ongoing issues
+    # Check ongoing issues
     issues = db.query(Issue).filter(
         Issue.vehicle_id == vehicle_id,
         Issue.is_active == True
@@ -117,7 +117,7 @@ def delete_vehicle(vehicle_id: int, db: Session = Depends(get_db)):
             detail="Cannot delete vehicle with ongoing issues"
         )
 
-    # ✅ Soft delete
+    # Soft delete
     vehicle.is_active = False
     db.commit()
 

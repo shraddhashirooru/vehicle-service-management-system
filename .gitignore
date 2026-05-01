@@ -10,3 +10,4 @@ build/
 
 # Env
 .env
+.evn.production

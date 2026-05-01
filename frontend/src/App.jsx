@@ -1,5 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import RoleSelect from "./pages/RoleSelect";
 import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -21,17 +20,32 @@ function App() {
         {/* Entry */}
         <Route path="/" element={<RoleSelect />} />
 
-        {/* Service Portal */}
+        {/* User Portal */}
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/user" element={<Navigate to="/dashboard" />} />   {/* optional */}
+        <Route path="/user" element={<Navigate to="/dashboard" />} />
 
         <Route path="/vehicles" element={<Vehicles />} />
         <Route path="/issues" element={<Issues />} />
-        <Route path="/services" element={<Services />} />
+        <Route path="/orders" element={<Services />} />
 
         {/* Admin */}
-        <Route path="/admin-login" element={<Login />} />
-        <Route path="/admin" element={<AdminDashboard />} />
+        <Route
+          path="/admin-login"
+          element={
+            localStorage.getItem("adminAuth") === "true"
+              ? <Navigate to="/admin" />
+              : <Login />
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            localStorage.getItem("adminAuth") === "true"
+              ? <AdminDashboard />
+              : <Navigate to="/admin-login" />
+          }
+        />
+        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>
   );
