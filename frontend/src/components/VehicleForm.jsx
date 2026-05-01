@@ -114,7 +114,6 @@ function VehicleForm({onSuccess}) {
         {loading ? "Adding..." : "Add Vehicle"}
       </button>
 
-      {/* MESSAGE */}
       {message && (
         <p
           style={{

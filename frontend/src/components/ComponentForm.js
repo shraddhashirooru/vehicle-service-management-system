@@ -93,7 +93,6 @@ function ComponentForm() {
         {loading ? "Adding..." : "Add Component"}
       </button>
 
-      {/* ADD THIS HERE */}
       {message && (
         <p
           style={{

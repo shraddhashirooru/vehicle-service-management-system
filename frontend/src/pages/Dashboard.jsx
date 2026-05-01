@@ -79,7 +79,7 @@ function Dashboard() {
               </span>
             </div>
 
-              {/* 🔽 EXPANDED DETAILS */}
+              {/* EXPANDED DETAILS */}
               {isOpen && (
                 <div style={{ marginTop: "10px" }}>
 
@@ -129,7 +129,7 @@ function Dashboard() {
                             <td style={{ border: "1px solid #ccc", padding: "8px" }}>
                               {index + 1}
                             </td>
-                            
+
                             <td style={{ border: "1px solid #ccc", padding: "8px" }}>
                               {item.issue}
                             </td>

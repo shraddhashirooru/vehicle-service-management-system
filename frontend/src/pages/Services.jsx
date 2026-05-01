@@ -199,9 +199,7 @@ function Services() {
         View Orders
       </button>
 
-      {/* ================= */}
       {/* PLACE ORDER */}
-      {/* ================= */}
       {(mode === "purchase" || mode === "repair") && (
         <div className="list-item">
           <h3> {mode === "purchase" ? "Purchase Parts" : "Repair Services"} </h3>
@@ -257,9 +255,7 @@ function Services() {
         </div>
       )}
 
-      {/* ================= */}
       {/* VIEW ORDERS */}
-      {/* ================= */}
       {mode === "view" && (
         <div>
           <h3>Orders</h3>

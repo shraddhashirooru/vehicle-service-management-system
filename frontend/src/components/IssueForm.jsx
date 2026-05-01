@@ -57,7 +57,7 @@ function IssueForm({ onSuccess }) {
 
   const fetchComponents = async () => {
     try {
-      const res = await getComponents(resolutionType); // ✅ optimized
+      const res = await getComponents(resolutionType); 
       setComponents(res.data);
     } catch (err) {
       console.error(err);
@@ -87,29 +87,12 @@ function IssueForm({ onSuccess }) {
 
     let res;
     try {
-      // CHECK DUPLICATE
-      // const existing = await getIssues();
-
-      // const duplicate = existing.data.find((i) =>
-      //   i.vehicle_id === Number(vehicleId) &&
-      //   i.components?.some(
-      //     (c) => c.component_id === Number(selectedComponent) && c.component?.type === resolutionType
-      //   )
-      // );
-
-      // if (duplicate) {
-      //   setError("Issue already exists. Update to change.");
-      //   return;
-      // }
-
-      // ✅ CREATE ISSUE
       setLoading(true);
       res = await createIssue({
         vehicle_id: Number(vehicleId),
         description: description.trim(),
       });
 
-      // ✅ ADD COMPONENT
       await addComponentToIssue({
         issue_id: res.data.id,
         component_id: Number(selectedComponent),
@@ -136,7 +119,7 @@ function IssueForm({ onSuccess }) {
     } catch (err) {
       const msg = err.message;
 
-      // ✅ DELETE EMPTY ISSUE IF CREATED
+      // DELETE EMPTY ISSUE IF CREATED
       if (res?.data?.id) {
         try {
           await deleteIssue(res.data.id);
@@ -150,7 +133,7 @@ function IssueForm({ onSuccess }) {
         setMessage("");
       } else {
         setError(msg || "Something went wrong");
-        setMessage("");   // ✅ STOP LOADING ALWAYS
+        setMessage(""); 
       } 
     } finally {
         setLoading(false);

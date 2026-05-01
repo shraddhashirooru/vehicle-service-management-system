@@ -117,7 +117,6 @@ def delete_vehicle(vehicle_id: int, db: Session = Depends(get_db)):
             detail="Cannot delete vehicle with ongoing issues"
         )
 
-    # Soft delete
     vehicle.is_active = False
     db.commit()
 
