@@ -3,12 +3,13 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-# 🔹 Replace with your PostgreSQL credentials
 DATABASE_URL = "sqlite:///./test.db"
 
 # Engine
-engine = create_engine(DATABASE_URL)
-
+engine = create_engine(
+    DATABASE_URL,
+    connect_args={"check_same_thread": False}
+)
 # Session
 SessionLocal = sessionmaker(
     autocommit=False,
@@ -20,7 +21,7 @@ SessionLocal = sessionmaker(
 Base = declarative_base()
 
 
-# Dependency (VERY IMPORTANT for FastAPI)
+# Dependency 
 def get_db():
     db = SessionLocal()
     try:

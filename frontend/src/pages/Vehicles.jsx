@@ -46,7 +46,7 @@ function Vehicles() {
     }
   }, [selected]);
 
-  // 🎯 Select vehicle
+  // Select vehicle
   const handleSelect = (v) => {
     setSelected(v);
     setEditNumber(v.vehicle_number);
@@ -54,7 +54,7 @@ function Vehicles() {
     setMessage(""); 
   };
 
-  // ✏️ Update vehicle
+  // Update vehicle
   const handleUpdate = async () => {
     if (!editNumber.trim() || !editOwner.trim()) {
       setMessage("Please fill all fields");
@@ -68,7 +68,7 @@ function Vehicles() {
 
       await updateVehicle(selected.id, {
         vehicle_number: editNumber.trim(),
-        owner_name: editOwner.trim(),
+        owner_name: editOwner.trim().replace(/\s+/g, " "),
       });
 
       setMessage("Vehicle updated successfully");
@@ -84,19 +84,26 @@ function Vehicles() {
       setSelected(null);
       fetchVehicles();
     } catch (err) {
-      setMessage(
-        err.original?.response?.data?.detail ||
-        err.message ||
-        "Error updating vehicle"
-      );
-    } finally {
+        const detail =
+          err.original?.response?.data?.detail ||
+          err.response?.data?.detail;
+
+        if (Array.isArray(detail)) {
+          setMessage(detail[0]?.msg || "Invalid input");
+        } else {
+          setMessage(
+            detail ||
+            err.message ||
+            "Error updating vehicle"
+          );
+        }
+      } finally {
       setLoading(false);
       setAction(null);
-
-    }
+     }
   };
 
-  // ❌ Delete vehicle
+  // Delete vehicle
   const handleDelete = async () => {
     try {
       setLoading(true);
@@ -129,11 +136,14 @@ function Vehicles() {
     }
   };
 
+  const safeMessage = String(message);
+
   const isError =
     message &&
-    ["error", "invalid", "exist"].some((word) =>
-      message.toLowerCase().includes(word)
+    ["error", "invalid", "exist", "value", "please"].some((word) =>
+      safeMessage.toLowerCase().includes(word)
     );
+
   const isUnchanged =
     selected &&
     editNumber.trim() === selected.vehicle_number &&
@@ -154,7 +164,7 @@ function Vehicles() {
           <div
             className="list-item"
             key={v.id}
-            onClick={() => !loading && handleSelect(v)}   // ✅ CLICK ENABLED
+            onClick={() => !loading && handleSelect(v)}   
             style={{
               cursor: "pointer",
               backgroundColor:
@@ -167,7 +177,7 @@ function Vehicles() {
         ))
       )}
 
-      {/* 🔧 EDIT SECTION */}
+      {/* EDIT SECTION */}
       {selected && (
         <div className="list-item">
           <h3>Edit Vehicle</h3>

@@ -4,13 +4,16 @@ import { useNavigate } from "react-router-dom";
 function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
+
   const handleLogin = () => {
-    if (username === "admin" && password === "admin123") {
+    if (username.trim() === "admin" && password === "admin123") {
+      localStorage.setItem("adminAuth", "true");
       navigate("/admin");
     } else {
-      alert("Invalid credentials");
+      setError("Invalid credentials");
     }
   };
 
@@ -27,17 +30,27 @@ function Login() {
         <input
           placeholder="Username"
           value={username}
-          onChange={(e) => setUsername(e.target.value)}
+          onChange={(e) => {setUsername(e.target.value); 
+            setError("");
+          }}
+          
         />
 
         <input
           type="password"
           placeholder="Password"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={(e) => {setPassword(e.target.value);
+            setError("");
+          }}
         />
 
-        <button type="submit">Login</button>
+        <button type="submit" disabled={!username || !password}>Login</button>
+        {error && (
+          <p style={{ color: "red", marginTop: "10px" }}>
+            {error}
+          </p>
+        )}
       </form>
     </div>
   );

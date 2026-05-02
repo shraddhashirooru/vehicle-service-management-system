@@ -41,7 +41,7 @@ function ComponentList({ type, onSelect, selected }) {
       
 
       {!loading && !error && components.length === 0 ? (
-        <p><p>No {type?.toLowerCase()} components</p></p>
+        <p>No {type?.toLowerCase()} components</p>
       ) : (
         components.map((c) => (
           <div

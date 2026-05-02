@@ -17,6 +17,23 @@ class VehicleBase(BaseModel):
             raise ValueError("Vehicle number must contain only letters and numbers")
 
         return value
+        
+    @field_validator("owner_name")
+    def validate_owner_name(cls, value):
+        value = value.strip()
+
+        if len(value) < 2:
+            raise ValueError("Owner name too short")
+
+        if not all(
+            ch.isalpha() or ch.isspace() or ch == "."
+            for ch in value
+        ):
+            raise ValueError(
+                "Owner name must contain letters only"
+            )
+
+        return value
 
 
 class VehicleCreate(VehicleBase):

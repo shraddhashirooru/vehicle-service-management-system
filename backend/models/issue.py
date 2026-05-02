@@ -11,8 +11,8 @@ class Issue(Base):
     description = Column(String, nullable=False)
 
     vehicle_id = Column(Integer, ForeignKey("vehicles.id"), nullable=False, index=True)
-    is_active = Column(Boolean, default=True)   # ADD THIS
-    status = Column(String, default="pending")  
+    is_active = Column(Boolean, default=True, nullable=False, index=True)   
+    status = Column(String, default="pending", nullable=False, index=True)  
 
     # Relationships
     vehicle = relationship("Vehicle", back_populates="issues")

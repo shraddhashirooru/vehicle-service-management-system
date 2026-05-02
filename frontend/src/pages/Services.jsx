@@ -199,9 +199,7 @@ function Services() {
         View Orders
       </button>
 
-      {/* ================= */}
       {/* PLACE ORDER */}
-      {/* ================= */}
       {(mode === "purchase" || mode === "repair") && (
         <div className="list-item">
           <h3> {mode === "purchase" ? "Purchase Parts" : "Repair Services"} </h3>
@@ -257,9 +255,7 @@ function Services() {
         </div>
       )}
 
-      {/* ================= */}
       {/* VIEW ORDERS */}
-      {/* ================= */}
       {mode === "view" && (
         <div>
           <h3>Orders</h3>
@@ -284,7 +280,7 @@ function Services() {
                 <strong>Type:</strong>{" "}
                 {o.type === "new" ? "Item" : "Repair"} <br />
 
-                <strong>Total:</strong> ₹{o.total_amount} <br />
+                <strong>Total:</strong> ₹{Number(o.total_amount).toFixed(2)} <br />
 
                 <strong>Status:</strong>{" "}
                 {o.status === "pending" ? (
@@ -293,7 +289,9 @@ function Services() {
                   </span>
                 ) : (
                   <span style={{ color: "green", fontWeight: "bold" }}>
-                    Completed
+                    {o.type === "new"
+                      ? "Delivered"
+                      : "Completed"}
                   </span>
                 )}
               </div>
@@ -307,37 +305,178 @@ function Services() {
           <h3>Order Details</h3>
 
           <p>
+            <strong>Order Number:</strong> #
+            {selectedOrder.order_number ||
+              String(selectedOrder.id).padStart(5, "0")}
+          </p>
+
+          <p>
             <strong>Vehicle:</strong>{" "}
             {selectedOrder.vehicle?.vehicle_number || selectedOrder.vehicle_id}
           </p>
 
           <p>
             <strong>Type:</strong>{" "}
-            {selectedOrder.type === "new" ? "Item" : "Repair"}
-          </p>
-
-          <p>
-            <strong>Total Amount:</strong> ₹{selectedOrder.total_amount}
+            {selectedOrder.type === "new" ? "Item Order" : "Repair Service"}
           </p>
 
           <p>
             <strong>Status:</strong>{" "}
             {selectedOrder.status === "pending" ? (
-              <span style={{ color: "orange", fontWeight: "bold" }}>
+              <span
+                style={{
+                  color: "orange",
+                  fontWeight: "bold"
+                }}
+              >
                 Pending
               </span>
             ) : (
-              <span style={{ color: "green", fontWeight: "bold" }}>
-                Completed
+              <span
+                style={{
+                  color: "green",
+                  fontWeight: "bold"
+                }}
+              >
+                {selectedOrder.type === "new"
+                  ? "Delivered"
+                  : "Completed"}
               </span>
             )}
           </p>
 
           <p>
-            <strong>Date:</strong>{" "}
-            {new Date(selectedOrder.created_at + "Z").toLocaleString("en-IN", {
+            <strong>Order Date:</strong>{" "}
+            {new Date(
+              selectedOrder.created_at + "Z"
+            ).toLocaleString("en-IN", {
               timeZone: "Asia/Kolkata"
             })}
+          </p>
+
+          {selectedOrder.completed_at && (
+            <p>
+              <strong>
+                {selectedOrder.type === "new"
+                  ? "Delivered Date"
+                  : "Completed Date"}
+                :
+              </strong>{" "}
+              {new Date(
+                selectedOrder.completed_at + "Z"
+              ).toLocaleString("en-IN", {
+                timeZone: "Asia/Kolkata"
+              })}
+            </p>
+          )}
+          {/* ITEMS TABLE */}
+          {selectedOrder.items?.length > 0 && (
+            <table
+              style={{
+                width: "100%",
+                marginTop: "15px",
+                borderCollapse: "collapse"
+              }}
+            >
+              <thead>
+                <tr>
+                  <th
+                    style={{
+                      border: "1px solid #ccc",
+                      padding: "8px"
+                    }}
+                  >
+                    No
+                  </th>
+                  <th
+                    style={{
+                      border: "1px solid #ccc",
+                      padding: "8px"
+                    }}
+                  >
+                    Issue
+                  </th>
+
+                  <th
+                    style={{
+                      border: "1px solid #ccc",
+                      padding: "8px"
+                    }}
+                  >
+                    {selectedOrder.type === "new"
+                      ? "Item"
+                      : "Repair"}
+                  </th>
+
+                  <th
+                    style={{
+                      border: "1px solid #ccc",
+                      padding: "8px"
+                    }}
+                  >
+                    Amount
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {selectedOrder.items.map(
+                  (item, index) => (
+                    <tr key={index}>
+                      <td
+                        style={{
+                          border:
+                            "1px solid #ccc",
+                          padding: "8px"
+                        }}
+                      >
+                        {index + 1}
+                      </td>
+
+                      <td
+                        style={{
+                          border:
+                            "1px solid #ccc",
+                          padding: "8px"
+                        }}
+                      >
+                        {item.issue}
+                      </td>
+
+                      <td
+                        style={{
+                          border:
+                            "1px solid #ccc",
+                          padding: "8px"
+                        }}
+                      >
+                        {item.item_name}
+                      </td>
+
+                      <td
+                        style={{
+                          border:
+                            "1px solid #ccc",
+                          padding: "8px"
+                        }}
+                      >
+                        ₹
+                        {Number(
+                          item.amount
+                        ).toFixed(2)}
+                      </td>
+                    </tr>
+                  )
+                )}
+              </tbody>
+            </table>
+          )}
+
+          <p style={{ marginTop: "15px" }}>
+            <strong>Total Amount:</strong> ₹
+            {Number(
+              selectedOrder.total_amount
+            ).toFixed(2)}
           </p>
         </div>
       )}

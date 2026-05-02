@@ -55,7 +55,6 @@ def get_issues(
         joinedload(Issue.components).joinedload(IssueComponent.component)
     ).filter(Issue.is_active == True)
 
-    # ✅ ADD FILTER
     if vehicle_id:
         query = query.filter(Issue.vehicle_id == vehicle_id)
 
@@ -87,7 +86,7 @@ def add_component(data: IssueComponentCreate, db: Session = Depends(get_db)):
     existing = db.query(IssueComponent).join(Issue).join(Component).filter(
     Issue.vehicle_id == issue.vehicle_id,
     Issue.is_active == True,
-    Issue.id != data.issue_id,   # ✅ ADD THIS  
+    Issue.id != data.issue_id,     
     IssueComponent.component_id == data.component_id,
     Component.type == component.type).first()
 
@@ -134,7 +133,6 @@ def get_bill(vehicle_id: int, type: Optional[str] = None, db: Session = Depends(
             if not ic.component:
                 continue
 
-            # 🔥 FILTER LOGIC
             if type and ic.component.type != type:
                 continue
 
@@ -142,6 +140,7 @@ def get_bill(vehicle_id: int, type: Optional[str] = None, db: Session = Depends(
             total += amount
 
             items.append({
+                "issue": issue.description,
                 "component": ic.component.name,
                 "type": ic.component.type,
                 "quantity": ic.quantity,

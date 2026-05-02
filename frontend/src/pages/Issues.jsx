@@ -71,7 +71,7 @@ function Issues() {
 
   // Select Issue
   const handleSelectIssue = (i) => {
-    setError("");     // ✅ ADD HERE
+    setError("");     
     setMessage("");
     setSelectedIssue(i);
     setEditDescription(i.description);
@@ -115,13 +115,12 @@ function Issues() {
       setAction("update");
       setError("");
       setMessage("");
-      // ✅ Update issue
+      // Update issue
       await updateIssue(selectedIssue.id, {
         vehicle_id: selectedIssue.vehicle_id,
         description: editDescription.trim(),
       });
 
-      // 🔥 ADD YOUR NEW LOGIC HERE
       if (issueComponentId) {
         const existingComponentId =selectedIssue?.components?.length > 0 ? selectedIssue.components[0].component_id : null;
 
@@ -159,8 +158,8 @@ function Issues() {
       }, 10000);
 
       setError("");
-      setSelectedIssue(null);        // ✅ CLOSE EDIT PANEL
-      setSelectedComponent("");      // ✅ RESET
+      setSelectedIssue(null);        
+      setSelectedComponent("");      
       setQuantity(1);
       await fetchIssues();
       setResolutionType("new");
@@ -198,7 +197,7 @@ function Issues() {
 
   return (
     <div className="container">
-      <h2>Issues</h2>
+      <h2>Vehicle Issues Management</h2>
 
       {/* Add Issue */}
       <IssueForm onSuccess={fetchIssues} />
@@ -259,8 +258,8 @@ function Issues() {
             onChange={(e) => {
               clearTimer();
               setEditDescription(e.target.value);
-              setMessage("");   // ✅ clear old message
-              setError("");     // ✅ clear old error
+              setMessage("");   // clear old message
+              setError("");     // clear old error
             }}
           />
 

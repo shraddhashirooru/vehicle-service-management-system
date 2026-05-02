@@ -18,4 +18,4 @@ class ComponentResponse(ComponentBase):
     id: int
 
     class Config:
-        from_attributes = True   # replaces orm_mode=True (Pydantic v2)
+        from_attributes = True   
