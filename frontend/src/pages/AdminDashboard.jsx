@@ -6,12 +6,13 @@ import ComponentManagement from "./ComponentManagement";
 import Orders from "./Orders";
 import Revenue from "./Revenue";
 
-function AdminDashboard() {
+function AdminDashboard({ setIsAdminAuth }) {
   const [tab, setTab] = useState("dashboard");
   const navigate = useNavigate();
-  
+
   const handleLogout = () => {
       localStorage.removeItem("adminAuth");
+      setIsAdminAuth(false);
       navigate("/admin-login");
     };
 

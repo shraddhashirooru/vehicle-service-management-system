@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-function Login() {
+function Login({ setIsAdminAuth }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -11,6 +11,7 @@ function Login() {
   const handleLogin = () => {
     if (username.trim() === "admin" && password === "admin123") {
       localStorage.setItem("adminAuth", "true");
+      setIsAdminAuth(true);
       navigate("/admin");
     } else {
       setError("Invalid credentials");
