@@ -67,18 +67,40 @@ def create_service(data: ServiceCreate, db: Session = Depends(get_db)):
             detail=f"No {data.type} components available for this vehicle"
         )
 
-    #  Prevent duplicate ongoing order
-    existing = db.query(ServiceRecord).filter(
+    # Prevent duplicate pending order only for same vehicle + same type + same component
+    pending_services = db.query(ServiceRecord).options(
+        joinedload(ServiceRecord.items)
+    ).filter(
         ServiceRecord.vehicle_id == data.vehicle_id,
         ServiceRecord.status == "pending",
-        ServiceRecord.type == data.type   
-    ).first()
+        ServiceRecord.type == data.type
+    ).all()
 
+    # Components user is trying to order now
+    requested_names = {
+        ic.component.name.strip().lower()
+        for ic in valid_items
+        if ic.component
+    }
 
-    if existing:
+    # Already pending component names
+    pending_names = {
+        item.item_name.strip().lower()
+        for service in pending_services
+        for item in service.items
+    }
+
+    # Find duplicates
+    duplicate_names = requested_names.intersection(pending_names)
+
+    if duplicate_names:
+        duplicate_list = ", ".join(
+            sorted(name.title() for name in duplicate_names)
+        )
+
         raise HTTPException(
             status_code=400,
-            detail=f"{data.type.capitalize()} order already pending for this vehicle"
+            detail=f"{data.type.capitalize()} order already pending for: {duplicate_list}"
         )
 
     calculated_total = sum(
