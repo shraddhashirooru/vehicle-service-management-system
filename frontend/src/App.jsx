@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import RoleSelect from "./pages/RoleSelect";
 import Login from "./pages/Login";
@@ -12,6 +14,10 @@ import Services from "./pages/Services";
 import Navbar from "./components/Navbar";
 
 function App() {
+  const [isAdminAuth, setIsAdminAuth] = useState(
+    localStorage.getItem("adminAuth") === "true"
+  );
+
   return (
     <Router>
       <Navbar />
@@ -28,23 +34,30 @@ function App() {
         <Route path="/issues" element={<Issues />} />
         <Route path="/orders" element={<Services />} />
 
-        {/* Admin */}
+        {/* Admin Login */}
         <Route
           path="/admin-login"
           element={
-            localStorage.getItem("adminAuth") === "true"
-              ? <Navigate to="/admin" />
-              : <Login />
+            isAdminAuth ? (
+              <Navigate to="/admin" />
+            ) : (
+              <Login setIsAdminAuth={setIsAdminAuth} />
+            )
           }
         />
+        
+        {/* Admin Dashboard */}
         <Route
           path="/admin"
           element={
-            localStorage.getItem("adminAuth") === "true"
-              ? <AdminDashboard />
-              : <Navigate to="/admin-login" />
+            isAdminAuth ? (
+              <AdminDashboard setIsAdminAuth={setIsAdminAuth} />
+            ) : (
+              <Navigate to="/admin-login" />
+            )
           }
         />
+
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>
